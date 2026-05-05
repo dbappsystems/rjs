@@ -409,7 +409,7 @@ function LoginScreen({drivers,driverPins,adminPin,onLogin,onAdmin,onSavePin}){
   );
 }
 
-function Dashboard({driver,onNewWO,onQueue,onReports,onLogout,onEndOfDay,workOrders}){
+function Dashboard({driver,onNewWO,onQueue,onReports,onLogout,onAdmin,onEndOfDay,onRockTickets,workOrders}){
   const today=nowDate();
   const todayWOs=workOrders.filter(w=>w.date===today);
   const weekStart=new Date();weekStart.setDate(weekStart.getDate()-weekStart.getDay());weekStart.setHours(0,0,0,0);
@@ -427,6 +427,7 @@ function Dashboard({driver,onNewWO,onQueue,onReports,onLogout,onEndOfDay,workOrd
       </div>
       <div style={{padding:20,marginTop:-10}}>
         <button onClick={onNewWO} style={{width:"100%",background:R,color:"#fff",border:"none",borderRadius:16,padding:20,fontSize:18,fontWeight:700,cursor:"pointer",boxShadow:"0 8px 24px rgba(200,16,46,0.4)",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}><span style={{fontSize:24}}>＋</span> New Work Order</button>
+        <button onClick={onRockTickets} style={{width:"100%",background:"#92400E",color:"#fff",border:"none",borderRadius:14,padding:"16px 20px",fontSize:16,fontWeight:700,cursor:"pointer",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 4px 16px rgba(146,64,14,0.35)"}}><span style={{fontSize:22}}>🪨</span> Rock Tickets — Scan &amp; Log</button>
         <button onClick={onEndOfDay} style={{width:"100%",background:NV,color:"#fff",border:"none",borderRadius:14,padding:"16px 20px",fontSize:16,fontWeight:700,cursor:"pointer",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 4px 16px rgba(13,43,107,0.35)"}}><span style={{fontSize:22}}>⛽</span> End of Day — Log Fuel &amp; Hours</button>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
           {[{icon:"📋",label:"Queue",sub:`${workOrders.length}`,action:onQueue},{icon:"📊",label:"Reports",sub:"Daily/Wkly",action:onReports}].map(a=><button key={a.label} onClick={a.action} style={{background:"#fff",border:"none",borderRadius:14,padding:"16px 10px",cursor:"pointer",textAlign:"center",boxShadow:"0 2px 10px rgba(0,0,0,0.08)"}}><div style={{fontSize:24,marginBottom:4}}>{a.icon}</div><div style={{fontWeight:700,color:"#1a1a1a",fontSize:13}}>{a.label}</div><div style={{color:"#888",fontSize:11,marginTop:2}}>{a.sub}</div></button>)}
@@ -437,7 +438,7 @@ function Dashboard({driver,onNewWO,onQueue,onReports,onLogout,onEndOfDay,workOrd
   );
 }
 
-function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],onSave,onLoadSample,onClearSample,adminPin,driverPins,onChangeAdminPin,onResetDriverPin}){
+function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],rockTickets=[],onSave,onLoadSample,onClearSample,adminPin,driverPins,onChangeAdminPin,onResetDriverPin}){
   const [tab,setTab]=useState("companies");
   const [localDrivers,setLocalDrivers]=useState(()=>drivers.map(normDriver));
   const [localCompanies,setLocalCompanies]=useState(()=>companies.map(normCompany));
@@ -450,6 +451,10 @@ function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],o
   const [secPendingPin,setSecPendingPin]=useState("");
   const [secPinError,setSecPinError]=useState("");
   const [secMsg,setSecMsg]=useState("");
+  const [rtPeriod,setRtPeriod]=useState("weekly");
+  const [rtDriver,setRtDriver]=useState("all");
+  const [rtQuarry,setRtQuarry]=useState("all");
+  const [rtExportMsg,setRtExportMsg]=useState("");
 
   const showSaved=()=>{setSavedMsg("✓ Saved!");setTimeout(()=>setSavedMsg(""),2200);};
   const showSecMsg=m=>{setSecMsg(m);setTimeout(()=>setSecMsg(""),3000);};
@@ -482,7 +487,26 @@ function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],o
 
   const handleSecPinDone=pin=>{setSecPinError("");if(secPinStep==="new"){setSecPendingPin(pin);setSecPinStep("confirm");}else if(secPinStep==="confirm"){if(pin===secPendingPin){onChangeAdminPin(pin);setSecPinStep(null);setSecPendingPin("");showSecMsg("✓ Admin PIN updated!");}else{setSecPinError("PINs don't match — try again");setSecPinStep("new");setSecPendingPin("");}}};
 
-  const TABS=[{id:"companies",label:"🏢 Companies"},{id:"drivers",label:"👷 Drivers"},{id:"quarries",label:"🪨 Quarries"},{id:"reports",label:"📊 Reports"},{id:"security",label:"🔐 Security"}];
+  const filterRT=()=>{
+    const today=nowDate();
+    let f=[...rockTickets];
+    if(rtDriver!=="all")f=f.filter(t=>t.driver===rtDriver);
+    if(rtQuarry!=="all")f=f.filter(t=>t.quarry===rtQuarry);
+    if(rtPeriod==="daily")f=f.filter(t=>t.date===today);
+    else if(rtPeriod==="weekly"){const ws=new Date();ws.setDate(ws.getDate()-ws.getDay());ws.setHours(0,0,0,0);f=f.filter(t=>new Date(t.date+"T00:00:00")>=ws);}
+    else if(rtPeriod==="monthly")f=f.filter(t=>{const d=new Date(t.date+"T00:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+    else f=f.filter(t=>new Date(t.date+"T00:00:00").getFullYear()===now.getFullYear());
+    return f.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  };
+  const rtFiltered=filterRT();
+  const rtTotalTons=rtFiltered.reduce((a,t)=>a+parseFloat(t.tonnage||0),0);
+  const rtByQuarry={};
+  rtFiltered.forEach(t=>{const q=t.quarry||"Unknown Quarry";if(!rtByQuarry[q])rtByQuarry[q]={tickets:[],tons:0,byMaterial:{}};rtByQuarry[q].tickets.push(t);rtByQuarry[q].tons+=parseFloat(t.tonnage||0);const m=t.materialName||"Unknown";rtByQuarry[q].byMaterial[m]=(rtByQuarry[q].byMaterial[m]||0)+parseFloat(t.tonnage||0);});
+  const allQuarries=[...new Set(rockTickets.map(t=>t.quarry).filter(Boolean))].sort();
+  const allRTDrivers=[...new Set(rockTickets.map(t=>t.driver).filter(Boolean))].sort();
+  const doExportRTCSV=async()=>{const rows=[["Date","Driver","Quarry","Ticket #","Material","Tonnage"],...rtFiltered.map(t=>[t.date,t.driver,t.quarry||"",t.ticketNumber||"",t.materialName||"",parseFloat(t.tonnage||0).toFixed(3)])];const csv=rows.map(r=>r.map(c=>`"${(c||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");await exportFile(csv,`RJS-RockTickets-${rtPeriod}-${nowDate()}.csv`,"text/csv;charset=utf-8;",m=>{setRtExportMsg(m);setTimeout(()=>setRtExportMsg(""),5000);});};
+
+  const TABS=[{id:"companies",label:"🏢 Companies"},{id:"drivers",label:"👷 Drivers"},{id:"quarries",label:"🪨 Quarries"},{id:"reports",label:"📊 Reports"},{id:"rocktix",label:"🪨 Rock Tix"},{id:"security",label:"🔐 Security"}];
   const modalData=editModal&&editModal.idx!==null?{driver:localDrivers,company:localCompanies,quarry:localQuarries}[editModal.type]?.[editModal.idx]:null;
 
   return(
@@ -527,6 +551,42 @@ function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],o
             </div>
             {workOrders.filter(w=>w.isSampleData).length>0&&<p style={{margin:"10px 0 0",fontSize:11,color:"#059669",textAlign:"center"}}>✓ {workOrders.filter(w=>w.isSampleData).length} sample tickets loaded</p>}
           </div>
+        </>}
+        {tab==="rocktix"&&<>
+          <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}>
+            <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>{[["daily","Day"],["weekly","Week"],["monthly","Month"],["yearly","Year"]].map(([v,l])=><button key={v} onClick={()=>setRtPeriod(v)} style={{padding:"7px 14px",borderRadius:20,border:"none",background:rtPeriod===v?R:"#f0f0f0",color:rtPeriod===v?"#fff":"#333",fontWeight:600,fontSize:13,cursor:"pointer"}}>{l}</button>)}</div>
+            <select value={rtDriver} onChange={e=>setRtDriver(e.target.value)} style={{...S.sel,marginBottom:8}}><option value="all">All Drivers</option>{allRTDrivers.map(d=><option key={d} value={d}>{d}</option>)}</select>
+            <select value={rtQuarry} onChange={e=>setRtQuarry(e.target.value)} style={S.sel}><option value="all">All Quarries</option>{allQuarries.map(q=><option key={q} value={q}>{q}</option>)}</select>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+            {[{label:"Tickets",val:rtFiltered.length,color:DR,icon:"🪨"},{label:"Total Tons",val:rtTotalTons.toFixed(2),color:"#92400E",icon:"⚖️"}].map(s=><div key={s.label} style={{background:"#fff",borderRadius:12,padding:14,textAlign:"center",boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}><div style={{fontSize:18,marginBottom:4}}>{s.icon}</div><div style={{fontSize:24,fontWeight:900,color:s.color}}>{s.val}</div><div style={{fontSize:11,color:"#888",marginTop:2}}>{s.label}</div></div>)}
+          </div>
+          {Object.keys(rtByQuarry).length>0&&Object.entries(rtByQuarry).sort((a,b)=>b[1].tons-a[1].tons).map(([qName,qData])=>(
+            <div key={qName} style={{background:"#fff",borderRadius:14,padding:16,marginBottom:12,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div><div style={{fontWeight:900,fontSize:15,color:DR}}>🪨 {qName}</div><div style={{fontSize:11,color:"#888",marginTop:2}}>{qData.tickets.length} ticket{qData.tickets.length>1?"s":""}</div></div>
+                <div style={{textAlign:"right"}}><div style={{fontWeight:900,fontSize:20,color:"#92400E"}}>{qData.tons.toFixed(2)}</div><div style={{fontSize:10,color:"#888"}}>total tons</div></div>
+              </div>
+              <div style={{borderTop:"1px solid #f0f0f0",paddingTop:10,marginBottom:10}}>
+                {Object.entries(qData.byMaterial).sort((a,b)=>b[1]-a[1]).map(([mat,tons])=>(
+                  <div key={mat} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #f9f9f9"}}>
+                    <span style={{fontSize:12,color:"#555"}}>{mat}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:NV}}>{parseFloat(tons).toFixed(2)} ton</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:10,fontWeight:800,color:"#aaa",letterSpacing:0.5,marginBottom:6}}>TICKET DETAIL</div>
+              {qData.tickets.map((t,i)=>(
+                <div key={t.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:i<qData.tickets.length-1?"1px solid #f5f5f5":"none"}}>
+                  <div><span style={{fontWeight:700,fontSize:12,color:DR}}>#{t.ticketNumber}</span><span style={{fontSize:11,color:"#666",marginLeft:8}}>{t.driver}</span><span style={{fontSize:11,color:"#999",marginLeft:8}}>{fmt(t.date)}</span></div>
+                  <div style={{textAlign:"right"}}><span style={{fontSize:12,fontWeight:700,color:"#92400E"}}>{parseFloat(t.tonnage||0).toFixed(2)} ton</span><div style={{fontSize:10,color:"#aaa"}}>{t.materialName||"—"}</div></div>
+                </div>
+              ))}
+            </div>
+          ))}
+          {rtFiltered.length===0&&<div style={{textAlign:"center",padding:40,color:"#bbb",background:"#fff",borderRadius:14}}>No rock tickets for this period</div>}
+          <button onClick={doExportRTCSV} style={{...S.btn,background:"#92400E",color:"#fff",width:"100%",fontSize:15,padding:14,marginTop:4}}>📊 Export Rock Tickets CSV</button>
+          {rtExportMsg&&<div style={{marginTop:10,background:"#EEF2FF",borderRadius:8,padding:"10px 12px",fontSize:13,color:NV,textAlign:"center",fontWeight:600}}>{rtExportMsg}</div>}
         </>}
         {tab==="security"&&<>
           {secMsg&&<div style={{background:"#dcfce7",color:"#166534",borderRadius:10,padding:"10px 14px",marginBottom:14,fontWeight:700,fontSize:13,textAlign:"center"}}>{secMsg}</div>}
@@ -590,7 +650,6 @@ function WorkOrderForm({driver,quarries,companies,savedLocations=[],onSubmit,onC
               <Field label="Select Quarry"><select value={form.quarry} onChange={e=>{if(e.target.value==="__add__")setShowNewQuarry(true);else setMany({quarry:e.target.value,quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:""});}} style={S.sel}><option value="">-- Select Quarry --</option>{localQuarries.map(q=>{const n=getName(q);return <option key={n} value={n}>{n}</option>;})}<option value="__add__">+ Add New Quarry...</option></select></Field>
               {form.quarry&&(qObj||qDB)&&(<div style={{background:"#fff",borderRadius:8,padding:10,marginBottom:10,fontSize:11,color:"#555",border:"1px solid #e5e7eb"}}><div style={{fontWeight:700,color:"#1a1a1a"}}>{form.quarry}</div>{(qObj?.address||qDB?.address)&&<div>{qObj?.address||qDB?.address}</div>}<div style={{display:"flex",gap:12,marginTop:2,flexWrap:"wrap"}}>{(qObj?.phone||qDB?.phone)&&<span>📞 {qObj?.phone||qDB?.phone}</span>}{(qObj?.email||qDB?.email)&&<span>✉️ {qObj?.email||qDB?.email}</span>}{qObj?.text&&<span>💬 {qObj.text}</span>}</div>{qObj?.ap?.name&&<div style={{marginTop:4,color:"#166534"}}>💳 AP: {qObj.ap.name}{qObj.ap.phone?" — "+qObj.ap.phone:""}</div>}{qObj?.dispatch?.name&&<div style={{color:NV}}>⚖️ {qObj.dispatch.name}{qObj.dispatch.phone?" — "+qObj.dispatch.phone:""}</div>}{(qObj?.notes||qDB?.note)&&<div style={{color:"#999",marginTop:2}}>{qObj?.notes||qDB?.note}</div>}</div>)}
               {form.quarry&&qDB&&<Field label="Stone / Material Type"><select value={form.quarryMaterialName} onChange={e=>{const mat=qDB.materials.find(m=>m.name===e.target.value);if(mat)setMany({quarryMaterialName:mat.name,quarryMaterialCode:mat.code,quarryMaterialPrice:mat.price});else setMany({quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:"",});}} style={S.sel}><option value="">-- Select stone type --</option>{qDB.materials.map(m=><option key={m.code} value={m.name}>{m.name} (#{m.code}) — ${m.price.toFixed(2)}/ton</option>)}</select>{form.quarryMaterialName&&<div style={{display:"flex",gap:8,marginTop:8}}><div style={{flex:1,background:"#EEF2FF",borderRadius:8,padding:10,textAlign:"center"}}><div style={{fontSize:10,color:"#666"}}>MATERIAL CODE</div><div style={{fontWeight:900,color:NV,fontSize:20}}>#{form.quarryMaterialCode}</div></div><div style={{flex:1,background:"#F0FDF4",borderRadius:8,padding:10,textAlign:"center"}}><div style={{fontSize:10,color:"#666"}}>GATE RATE / TON</div><div style={{fontWeight:900,color:"#166534",fontSize:20}}>${form.quarryMaterialPrice}</div></div></div>}</Field>}
-              {form.quarry&&qObj?.materials?.length>0&&<Field label="Stone / Material Type (RJS Pricing)"><select value={form.quarryMaterialName} onChange={e=>{const mat=qObj.materials.find(m=>m.name===e.target.value);if(mat)setMany({quarryMaterialName:mat.name,quarryMaterialCode:mat.code||"",quarryMaterialPrice:mat.rjsPrice||mat.gatePrice||0});else setMany({quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:"",});}} style={S.sel}><option value="">-- Select stone type --</option>{qObj.materials.map((m,i)=><option key={i} value={m.name}>{m.name}{m.code?" (#"+m.code+")":""} — ${parseFloat(m.rjsPrice||m.gatePrice||0).toFixed(2)}/ton</option>)}</select>{form.quarryMaterialName&&<div style={{display:"flex",gap:8,marginTop:8}}><div style={{flex:1,background:"#EEF2FF",borderRadius:8,padding:10,textAlign:"center"}}><div style={{fontSize:10,color:"#666"}}>MATERIAL CODE</div><div style={{fontWeight:900,color:NV,fontSize:20}}>{form.quarryMaterialCode||"—"}</div></div><div style={{flex:1,background:"#F0FDF4",borderRadius:8,padding:10,textAlign:"center"}}><div style={{fontSize:10,color:"#666"}}>RJS RATE / TON</div><div style={{fontWeight:900,color:"#166534",fontSize:20}}>${form.quarryMaterialPrice}</div></div></div>}</Field>}
             </>}
           </div>)}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:12}}><Field label="From Location"><LocationInput value={form.fromLocation} onChange={v=>set("fromLocation",v)} placeholder="Origin / quarry" savedLocations={savedLocations}/></Field><Field label="To Location"><LocationInput value={form.toLocation} onChange={v=>set("toLocation",v)} placeholder="Job site" savedLocations={savedLocations}/></Field></div>
@@ -758,6 +817,112 @@ function ReportsScreen({workOrders,fuelLogs=[],drivers=[],onBack}){
   );
 }
 
+function RockTicketScreen({driver,rockTickets,onSaveTicket,onBack}){
+  const fileRef=useRef(null);
+  const [scanning,setScanning]=useState(false);
+  const [scanMsg,setScanMsg]=useState("");
+  const [pending,setPending]=useState(null);
+  const today=nowDate();
+  const todayTickets=rockTickets.filter(t=>t.driver===driver&&t.date===today);
+  const totalTons=todayTickets.reduce((a,t)=>a+parseFloat(t.tonnage||0),0);
+  const byMaterial={};
+  todayTickets.forEach(t=>{const k=t.materialName||"Unknown";byMaterial[k]=(byMaterial[k]||0)+parseFloat(t.tonnage||0);});
+
+  const handleScan=async(e)=>{
+    const file=e.target.files?.[0];if(!file)return;
+    setScanning(true);setScanMsg("");
+    try{
+      const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:500,messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:base64}},{type:"text",text:`Extract info from this quarry rock/aggregate ticket. Return ONLY valid JSON, no markdown:\n{"ticketNumber":"","quarry":"","materialName":"","tonnage":0,"date":""}\nFor date use YYYY-MM-DD. If not visible leave empty string.`}]}]})});
+      const data=await resp.json();
+      const text=data.content?.find(b=>b.type==="text")?.text||"";
+      const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+      setPending({ticketNumber:parsed.ticketNumber||"",quarry:parsed.quarry||"",materialName:parsed.materialName||"",tonnage:parseFloat(parsed.tonnage)||"",date:parsed.date||today,driver});
+      setScanMsg("✅ Ticket scanned — review and confirm below.");
+    }catch(err){setScanMsg("⚠️ Could not read ticket. Try a clearer photo or better lighting.");}
+    finally{setScanning(false);e.target.value="";}
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:"#f4f4f4"}}>
+      <Header title="Rock Tickets" sub={`${driver} — ${new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}`} onBack={onBack}/>
+      <div style={{padding:"16px 20px 80px"}}>
+        <Section title="SCAN TICKET" icon="📷">
+          <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleScan}/>
+          <div style={{display:"flex",gap:8,marginBottom:12}}>
+            <button onClick={()=>{fileRef.current.setAttribute("capture","environment");fileRef.current.click();}} style={{...S.btn,flex:1,background:R,color:"#fff",fontSize:16,padding:16}}>📷 Scan Rock Ticket</button>
+            <button onClick={()=>{fileRef.current.removeAttribute("capture");fileRef.current.click();}} style={{...S.btn,background:"#374151",color:"#fff",fontSize:13,padding:"14px 12px"}}>📁</button>
+          </div>
+          {scanning&&<div style={{textAlign:"center",padding:12,color:NV,fontWeight:700,fontSize:14}}>⏳ Reading ticket…</div>}
+          {scanMsg&&<div style={{background:scanMsg.startsWith("✅")?"#F0FDF4":"#FEF2F2",color:scanMsg.startsWith("✅")?"#166534":"#991b1b",borderRadius:8,padding:"10px 12px",fontSize:13,fontWeight:600}}>{scanMsg}</div>}
+        </Section>
+        {pending&&(
+          <Section title="CONFIRM TICKET" icon="✅">
+            <Field label="Ticket Number *"><input value={pending.ticketNumber} onChange={e=>setPending(p=>({...p,ticketNumber:e.target.value}))} style={S.inp} placeholder="Ticket #"/></Field>
+            <Field label="Quarry / Source"><input value={pending.quarry} onChange={e=>setPending(p=>({...p,quarry:e.target.value}))} style={S.inp} placeholder="Quarry name"/></Field>
+            <Field label="Material / Aggregate Type"><input value={pending.materialName} onChange={e=>setPending(p=>({...p,materialName:e.target.value}))} style={S.inp} placeholder="e.g. IDOT CA06, RR4, Screenings"/></Field>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <Field label="Tonnage"><input type="number" value={pending.tonnage} onChange={e=>setPending(p=>({...p,tonnage:e.target.value}))} style={S.inp} placeholder="0.000" step="0.001" min="0"/></Field>
+              <Field label="Date"><input type="date" value={pending.date} onChange={e=>setPending(p=>({...p,date:e.target.value}))} style={S.inp}/></Field>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:4}}>
+              <button onClick={()=>{setPending(null);setScanMsg("");}} style={{...S.btn,flex:1,background:"#f0f0f0",color:"#333",padding:"12px 10px"}}>Cancel</button>
+              <button onClick={()=>{
+                if(!pending.ticketNumber?.trim()){alert("Ticket number required");return;}
+                onSaveTicket({...pending,tonnage:parseFloat(pending.tonnage)||0,id:"RT-"+Date.now(),submittedAt:Date.now()});
+                setPending(null);setScanMsg("✅ Ticket saved!");setTimeout(()=>setScanMsg(""),2500);
+              }} style={{...S.btn,flex:2,background:"#166534",color:"#fff",fontSize:15}}>✓ Save Ticket</button>
+            </div>
+          </Section>
+        )}
+        {todayTickets.length>0&&<>
+          <div style={{background:`linear-gradient(135deg,${DR},${R})`,borderRadius:14,padding:18,marginBottom:14,color:"#fff"}}>
+            <div style={{fontSize:11,opacity:0.8,letterSpacing:1,marginBottom:12}}>TODAY'S TOTALS</div>
+            <div style={{display:"flex",gap:12,marginBottom:14}}>
+              <div style={{flex:1,background:"rgba(255,255,255,0.15)",borderRadius:10,padding:14,textAlign:"center"}}>
+                <div style={{fontSize:28,fontWeight:900}}>{todayTickets.length}</div>
+                <div style={{fontSize:10,opacity:0.85,marginTop:2}}>Tickets</div>
+              </div>
+              <div style={{flex:1,background:"rgba(255,255,255,0.25)",borderRadius:10,padding:14,textAlign:"center",border:"2px solid rgba(255,255,255,0.4)"}}>
+                <div style={{fontSize:28,fontWeight:900}}>{totalTons.toFixed(2)}</div>
+                <div style={{fontSize:10,opacity:0.85,marginTop:2}}>Total Tons</div>
+              </div>
+            </div>
+            {Object.entries(byMaterial).sort((a,b)=>b[1]-a[1]).map(([mat,tons])=>(
+              <div key={mat} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderTop:"1px solid rgba(255,255,255,0.15)"}}>
+                <span style={{fontSize:12,opacity:0.9}}>{mat}</span>
+                <span style={{fontSize:13,fontWeight:800}}>{parseFloat(tons).toFixed(2)} ton</span>
+              </div>
+            ))}
+          </div>
+          <Section title="TODAY'S TICKETS" icon="🪨">
+            {todayTickets.slice().reverse().map((t,i)=>(
+              <div key={t.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"10px 0",borderBottom:i<todayTickets.length-1?"1px solid #f0f0f0":"none"}}>
+                <div>
+                  <div style={{fontWeight:800,fontSize:14,color:DR}}>#{t.ticketNumber}</div>
+                  <div style={{fontSize:12,color:"#333",marginTop:2}}>{t.materialName||"—"}</div>
+                  <div style={{fontSize:11,color:"#888"}}>{t.quarry||"—"}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
+                  <div style={{fontWeight:900,color:NV,fontSize:18}}>{parseFloat(t.tonnage||0).toFixed(2)}</div>
+                  <div style={{fontSize:10,color:"#888"}}>tons</div>
+                </div>
+              </div>
+            ))}
+          </Section>
+        </>}
+        {todayTickets.length===0&&!pending&&(
+          <div style={{textAlign:"center",padding:48,color:"#bbb",background:"#fff",borderRadius:14,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}>
+            <div style={{fontSize:40,marginBottom:10}}>🪨</div>
+            <div style={{fontWeight:700,fontSize:15,color:"#999"}}>No rock tickets today</div>
+            <div style={{fontSize:12,marginTop:6}}>Tap Scan Rock Ticket to add your first ticket</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const ADMIN_PIN_DEFAULT="1234";
 
 export default function App(){
@@ -773,6 +938,7 @@ export default function App(){
   const [viewingWO,setViewingWO]=useState(null);
   const [driverPins,setDriverPins]=useState({});
   const [adminPin,setAdminPin]=useState(ADMIN_PIN_DEFAULT);
+  const [rockTickets,setRockTickets]=useState([]);
 
   useEffect(()=>{
     (async()=>{
@@ -785,6 +951,7 @@ export default function App(){
         const r6=await window.storage.get("rjs-fuel-logs");if(r6)setFuelLogs(JSON.parse(r6.value));
         const r7=await window.storage.get("rjs-driver-pins");if(r7)setDriverPins(JSON.parse(r7.value));
         const r8=await window.storage.get("rjs-admin-pin");if(r8)setAdminPin(r8.value);
+        const r9=await window.storage.get("rjs-rock-tickets");if(r9)setRockTickets(JSON.parse(r9.value));
       }catch(e){}
     })();
   },[]);
@@ -799,10 +966,12 @@ export default function App(){
   const handleSaveDriverPin=async(name,pin)=>{setDriverPins(prev=>{const u={...prev,[name]:pin};window.storage.set("rjs-driver-pins",JSON.stringify(u)).catch(()=>{});return u;});};
   const handleResetDriverPin=async(name)=>{setDriverPins(prev=>{const u={...prev};delete u[name];window.storage.set("rjs-driver-pins",JSON.stringify(u)).catch(()=>{});return u;});};
   const handleChangeAdminPin=async(pin)=>{setAdminPin(pin);try{await window.storage.set("rjs-admin-pin",pin);}catch(e){}};
+  const saveRockTicket=async(ticket)=>{setRockTickets(prev=>{const u=[...prev,ticket];window.storage.set("rjs-rock-tickets",JSON.stringify(u)).catch(()=>{});return u;});};
 
   if(screen==="login") return <LoginScreen drivers={drivers} driverPins={driverPins} adminPin={adminPin} onLogin={d=>{setDriver(d);setScreen("dashboard");}} onAdmin={()=>setScreen("admin")} onSavePin={handleSaveDriverPin}/>;
-  if(screen==="dashboard") return <Dashboard driver={driver} workOrders={workOrders} onNewWO={()=>setScreen("new_wo")} onQueue={()=>setScreen("queue")} onReports={()=>setScreen("reports")} onEndOfDay={()=>setScreen("eod")} onLogout={()=>{setDriver(null);setScreen("login");}}/>;
-  if(screen==="admin") return <AdminScreen onBack={()=>setScreen(driver?"dashboard":"login")} drivers={drivers} companies={companies} quarries={quarries} workOrders={workOrders} fuelLogs={fuelLogs} onSave={handleAdminSave} onLoadSample={loadSampleData} onClearSample={clearSampleData} adminPin={adminPin} driverPins={driverPins} onChangeAdminPin={handleChangeAdminPin} onResetDriverPin={handleResetDriverPin}/>;
+  if(screen==="dashboard") return <Dashboard driver={driver} workOrders={workOrders} onNewWO={()=>setScreen("new_wo")} onQueue={()=>setScreen("queue")} onReports={()=>setScreen("reports")} onEndOfDay={()=>setScreen("eod")} onRockTickets={()=>setScreen("rock_tickets")} onLogout={()=>{setDriver(null);setScreen("login");}}/>;
+  if(screen==="admin") return <AdminScreen onBack={()=>setScreen(driver?"dashboard":"login")} drivers={drivers} companies={companies} quarries={quarries} workOrders={workOrders} fuelLogs={fuelLogs} rockTickets={rockTickets} onSave={handleAdminSave} onLoadSample={loadSampleData} onClearSample={clearSampleData} adminPin={adminPin} driverPins={driverPins} onChangeAdminPin={handleChangeAdminPin} onResetDriverPin={handleResetDriverPin}/>;
+  if(screen==="rock_tickets") return <RockTicketScreen driver={driver} rockTickets={rockTickets} onSaveTicket={saveRockTicket} onBack={()=>setScreen("dashboard")}/>;
   if(screen==="new_wo") return <WorkOrderForm driver={driver} quarries={quarries} companies={companies} savedLocations={savedLocations} onSubmit={form=>{setPendingForm(form);setScreen("signatures");}} onCancel={()=>setScreen("dashboard")}/>;
   if(screen==="signatures") return <SignatureScreen form={pendingForm} onComplete={handleSigComplete} onBack={()=>setScreen("new_wo")}/>;
   if(screen==="invoice") return <InvoicePreview workOrder={viewingWO} onClose={()=>setScreen("queue")} onNewOrder={()=>setScreen("new_wo")}/>;
