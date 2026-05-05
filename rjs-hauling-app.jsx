@@ -48,14 +48,14 @@ const mkContact    = () => ({ name:"", phone:"", email:"", text:"" });
 const mkContactA   = () => ({ name:"", address:"", phone:"", email:"", text:"" });
 const mkDriver     = () => ({ name:"", address:"", phone:"", email:"", text:"", license:"", emergency:mkContact(), notes:"" });
 const mkCompany    = () => ({ name:"", address:"", phone:"", email:"", text:"", contact:mkContact(), billing:mkContactA(), notes:"" });
-const mkQuarry     = () => ({ name:"", address:"", phone:"", email:"", text:"", ap:mkContactA(), dispatch:mkContact(), notes:"" });
+const mkQuarry     = () => ({ name:"", address:"", phone:"", email:"", text:"", ap:mkContactA(), dispatch:mkContact(), notes:"", materials:[] });
 
 const normDriver  = d => typeof d==="string" ? {...mkDriver(),name:d} : {...mkDriver(),...d, emergency:{...mkContact(),...(d.emergency||{})} };
 const normCompany = c => { const b=typeof c==="string"?{name:c}:c; return {...mkCompany(),...b, contact:{...mkContact(),...(b.contact||{})}, billing:{...mkContactA(),...(b.billing||{})}}; };
 const normQuarry  = q => {
   const b=typeof q==="string"?{name:q}:(q?.name?q:{name:String(q)});
   const db=QUARRY_DB[b.name];
-  return {...mkQuarry(), address:db?.address||"", phone:db?.phone||"", email:db?.email||"", notes:db?.note||"", ...b, ap:{...mkContactA(),...(b.ap||{})}, dispatch:{...mkContact(),...(b.dispatch||{})} };
+  return {...mkQuarry(), address:db?.address||"", phone:db?.phone||"", email:db?.email||"", notes:db?.note||"", ...b, ap:{...mkContactA(),...(b.ap||{})}, dispatch:{...mkContact(),...(b.dispatch||{})}, materials:b.materials||[] };
 };
 
 const INIT_DRIVERS   = INIT_DRIVER_NAMES.map(name=>({...mkDriver(),name}));
@@ -148,17 +148,54 @@ function ContactEditModal({type,data,onSave,onDelete,onClose}){
   });
   const upd=(k,v)=>setLocal(p=>({...p,[k]:v}));
   const updTop=partial=>setLocal(p=>({...p,...partial}));
+  const fileRef=useRef(null);
+  const [scanning,setScanning]=useState(false);
+  const [scanMsg,setScanMsg]=useState("");
+
+  const handleScan=async(e)=>{
+    const file=e.target.files?.[0];if(!file)return;
+    setScanning(true);setScanMsg("");
+    try{
+      const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+      const isPdf=file.type==="application/pdf";
+      const block=isPdf
+        ?{type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}}
+        :{type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:base64}};
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:[block,{type:"text",text:`Extract quarry/supplier info from this document. Return ONLY valid JSON, no markdown, no code fences:\n{"name":"","address":"","phone":"","email":"","notes":"","ap":{"name":"","phone":"","email":"","address":""},"dispatch":{"name":"","phone":""},"materials":[{"name":"","code":"","gatePrice":0,"rjsPrice":0}]}`}]}]})});
+      const data=await resp.json();
+      const text=data.content?.find(b=>b.type==="text")?.text||"";
+      const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+      setLocal(prev=>({...prev,
+        ...(parsed.name&&{name:parsed.name}),
+        ...(parsed.address&&{address:parsed.address}),
+        ...(parsed.phone&&{phone:parsed.phone}),
+        ...(parsed.email&&{email:parsed.email}),
+        ...(parsed.notes&&{notes:(prev.notes?prev.notes+"\n":"")+parsed.notes}),
+        ap:{...prev.ap,...(parsed.ap||{})},
+        dispatch:{...prev.dispatch,...(parsed.dispatch||{})},
+        materials:parsed.materials?.length>0?parsed.materials.map(m=>({name:m.name||"",code:m.code||"",gatePrice:parseFloat(m.gatePrice)||0,rjsPrice:parseFloat(m.rjsPrice)||parseFloat(m.gatePrice)||0})):prev.materials,
+      }));
+      setScanMsg("✅ Scan complete — review and adjust all fields below.");
+    }catch(err){setScanMsg("⚠️ Could not read document. Try a clearer photo or crop tighter.");}
+    finally{setScanning(false);e.target.value="";}
+  };
+
+  const addMaterial=()=>upd("materials",[...(local.materials||[]),{name:"",code:"",gatePrice:"",rjsPrice:""}]);
+  const removeMaterial=i=>upd("materials",(local.materials||[]).filter((_,idx)=>idx!==i));
+  const updMat=(i,field,val)=>{const m=[...(local.materials||[])];m[i]={...m[i],[field]:val};upd("materials",m);};
+
   const isNew=!data?.name;
   const labels={company:"Company",driver:"Driver",quarry:"Quarry"};
   const subSectionStyle={display:"flex",alignItems:"center",gap:8,margin:"4px 0 12px",paddingBottom:8,borderBottom:`2px solid ${R}22`};
   const SubHead=({icon,title})=><div style={subSectionStyle}><span style={{fontSize:16}}>{icon}</span><span style={{fontWeight:800,fontSize:11,color:"#555",letterSpacing:1,textTransform:"uppercase"}}>{title}</span></div>;
+
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.9)",zIndex:800,display:"flex",flexDirection:"column"}}>
       <div style={{background:`linear-gradient(135deg,${DR},${R})`,padding:"14px 16px",color:"#fff",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onClose} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:18,lineHeight:1}}>‹</button>
         <div style={{flex:1}}>
           <div style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:17}}>{isNew?`Add New ${labels[type]}`:`Edit: ${local.name||"—"}`}</div>
-          <div style={{fontSize:11,opacity:0.75}}>{{company:"Company + billing/AP contacts",driver:"Driver info + emergency contact",quarry:"Quarry + AP + dispatch"}[type]}</div>
+          <div style={{fontSize:11,opacity:0.75}}>{{company:"Company + billing/AP contacts",driver:"Driver info + emergency contact",quarry:"Quarry + AP + dispatch + pricing"}[type]}</div>
         </div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:16,background:"#f4f4f4"}}>
@@ -217,6 +254,35 @@ function ContactEditModal({type,data,onSave,onDelete,onClose}){
           </Section>
           <Section title="NOTES" icon="📝">
             <Field label="Notes / Gate info"><textarea value={local.notes||""} onChange={e=>upd("notes",e.target.value)} style={{...S.inp,height:80,resize:"vertical"}} placeholder="Hours, gate code, pricing notes..." /></Field>
+          </Section>
+          <Section title="MATERIALS & PRICING" icon="💰">
+            <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{display:"none"}} onChange={handleScan}/>
+            <div style={{background:"#EEF2FF",borderRadius:10,padding:12,marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:800,color:NV,letterSpacing:0.5,marginBottom:6}}>📄 SCAN PRICE SHEET</div>
+              <p style={{fontSize:12,color:"#555",margin:"0 0 10px"}}>Take a photo or upload a price sheet — AI will extract materials, prices, and contact info automatically.</p>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{fileRef.current.setAttribute("capture","environment");fileRef.current.click();}} style={{...S.btn,flex:1,background:NV,color:"#fff",fontSize:13,padding:"10px 8px"}}>📷 Camera</button>
+                <button onClick={()=>{fileRef.current.removeAttribute("capture");fileRef.current.click();}} style={{...S.btn,flex:1,background:"#374151",color:"#fff",fontSize:13,padding:"10px 8px"}}>📁 Upload File</button>
+              </div>
+              {scanning&&<div style={{marginTop:10,textAlign:"center",fontSize:13,color:NV,fontWeight:600}}>⏳ Scanning document…</div>}
+              {scanMsg&&<div style={{marginTop:10,background:scanMsg.startsWith("✅")?"#F0FDF4":"#FEF2F2",color:scanMsg.startsWith("✅")?"#166534":"#991b1b",borderRadius:8,padding:"8px 10px",fontSize:12,fontWeight:600}}>{scanMsg}</div>}
+            </div>
+            {(local.materials||[]).length>0&&<>
+              <div style={{display:"grid",gridTemplateColumns:"3fr 1fr 1fr 1fr auto",gap:6,marginBottom:6,padding:"0 4px"}}>
+                {["Material","Code","Gate $","RJS $",""].map((h,i)=><div key={i} style={{fontSize:10,fontWeight:800,color:"#888",letterSpacing:0.5}}>{h}</div>)}
+              </div>
+              {(local.materials||[]).map((mat,i)=>(
+                <div key={i} style={{display:"grid",gridTemplateColumns:"3fr 1fr 1fr 1fr auto",gap:6,marginBottom:6,alignItems:"center"}}>
+                  <input value={mat.name||""} onChange={e=>updMat(i,"name",e.target.value)} style={{...S.inp,fontSize:12,padding:"7px 8px"}} placeholder="Material name"/>
+                  <input value={mat.code||""} onChange={e=>updMat(i,"code",e.target.value)} style={{...S.inp,fontSize:12,padding:"7px 8px"}} placeholder="#"/>
+                  <input type="number" value={mat.gatePrice||""} onChange={e=>updMat(i,"gatePrice",e.target.value)} style={{...S.inp,fontSize:12,padding:"7px 8px"}} placeholder="0.00"/>
+                  <input type="number" value={mat.rjsPrice||""} onChange={e=>updMat(i,"rjsPrice",e.target.value)} style={{...S.inp,fontSize:12,padding:"7px 8px",borderColor:"#166534"}} placeholder="0.00"/>
+                  <button onClick={()=>removeMaterial(i)} style={{background:"#FEF2F2",border:"none",color:"#991b1b",borderRadius:6,width:28,height:28,cursor:"pointer",fontSize:14,fontWeight:700,flexShrink:0}}>×</button>
+                </div>
+              ))}
+              <div style={{fontSize:10,color:"#888",marginBottom:10,padding:"0 4px"}}>💚 RJS $ = what RJS charges — adjust as needed</div>
+            </>}
+            <button onClick={addMaterial} style={{...S.btn,background:"#F0FDF4",color:"#166534",border:"1.5px solid #bbf7d0",width:"100%",fontSize:13,padding:10}}>+ Add Material Row</button>
           </Section>
         </>}
       </div>
@@ -438,8 +504,8 @@ function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],o
           <button onClick={()=>setEditModal({type:"driver",idx:null})} style={{...S.btn,background:R,color:"#fff",width:"100%",padding:14,fontSize:15}}>+ Add Driver</button>
         </>}
         {tab==="quarries"&&<>
-          <p style={{fontSize:12,color:"#666",margin:"0 0 12px"}}>Tap <strong>Edit</strong> to add main office, accounts payable, and scale/dispatch contacts.</p>
-          {localQuarries.map((q,i)=>(<ContactListCard key={i} icon="🪨" name={q.name} info={[[q.phone,q.email].filter(Boolean).join(" • "),q.address].filter(Boolean)} badges={[q.ap?.name&&{label:`💳 AP: ${q.ap.name}`,bg:"#F0FDF4",color:"#166534"},q.dispatch?.name&&{label:`⚖️ ${q.dispatch.name}`,bg:"#EEF2FF",color:NV}].filter(Boolean)} onEdit={()=>setEditModal({type:"quarry",idx:i})}/>))}
+          <p style={{fontSize:12,color:"#666",margin:"0 0 12px"}}>Tap <strong>Edit</strong> to manage contacts and scan price sheets to auto-fill materials.</p>
+          {localQuarries.map((q,i)=>(<ContactListCard key={i} icon="🪨" name={q.name} info={[[q.phone,q.email].filter(Boolean).join(" • "),q.address,q.materials?.length>0?`💰 ${q.materials.length} material${q.materials.length>1?"s":""} on file`:null].filter(Boolean)} badges={[q.ap?.name&&{label:`💳 AP: ${q.ap.name}`,bg:"#F0FDF4",color:"#166534"},q.dispatch?.name&&{label:`⚖️ ${q.dispatch.name}`,bg:"#EEF2FF",color:NV}].filter(Boolean)} onEdit={()=>setEditModal({type:"quarry",idx:i})}/>))}
           <button onClick={()=>setEditModal({type:"quarry",idx:null})} style={{...S.btn,background:R,color:"#fff",width:"100%",padding:14,fontSize:15}}>+ Add Quarry</button>
         </>}
         {tab==="reports"&&<>
@@ -524,6 +590,7 @@ function WorkOrderForm({driver,quarries,companies,savedLocations=[],onSubmit,onC
               <Field label="Select Quarry"><select value={form.quarry} onChange={e=>{if(e.target.value==="__add__")setShowNewQuarry(true);else setMany({quarry:e.target.value,quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:""});}} style={S.sel}><option value="">-- Select Quarry --</option>{localQuarries.map(q=>{const n=getName(q);return <option key={n} value={n}>{n}</option>;})}<option value="__add__">+ Add New Quarry...</option></select></Field>
               {form.quarry&&(qObj||qDB)&&(<div style={{background:"#fff",borderRadius:8,padding:10,marginBottom:10,fontSize:11,color:"#555",border:"1px solid #e5e7eb"}}><div style={{fontWeight:700,color:"#1a1a1a"}}>{form.quarry}</div>{(qObj?.address||qDB?.address)&&<div>{qObj?.address||qDB?.address}</div>}<div style={{display:"flex",gap:12,marginTop:2,flexWrap:"wrap"}}>{(qObj?.phone||qDB?.phone)&&<span>📞 {qObj?.phone||qDB?.phone}</span>}{(qObj?.email||qDB?.email)&&<span>✉️ {qObj?.email||qDB?.email}</span>}{qObj?.text&&<span>💬 {qObj.text}</span>}</div>{qObj?.ap?.name&&<div style={{marginTop:4,color:"#166534"}}>💳 AP: {qObj.ap.name}{qObj.ap.phone?" — "+qObj.ap.phone:""}</div>}{qObj?.dispatch?.name&&<div style={{color:NV}}>⚖️ {qObj.dispatch.name}{qObj.dispatch.phone?" — "+qObj.dispatch.phone:""}</div>}{(qObj?.notes||qDB?.note)&&<div style={{color:"#999",marginTop:2}}>{qObj?.notes||qDB?.note}</div>}</div>)}
               {form.quarry&&qDB&&<Field label="Stone / Material Type"><select value={form.quarryMaterialName} onChange={e=>{const mat=qDB.materials.find(m=>m.name===e.target.value);if(mat)setMany({quarryMaterialName:mat.name,quarryMaterialCode:mat.code,quarryMaterialPrice:mat.price});else setMany({quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:"",});}} style={S.sel}><option value="">-- Select stone type --</option>{qDB.materials.map(m=><option key={m.code} value={m.name}>{m.name} (#{m.code}) — ${m.price.toFixed(2)}/ton</option>)}</select>{form.quarryMaterialName&&<div style={{display:"flex",gap:8,marginTop:8}}><div style={{flex:1,background:"#EEF2FF",borderRadius:8,padding:10,textAlign:"center"}}><div style={{fontSize:10,color:"#666"}}>MATERIAL CODE</div><div style={{fontWeight:900,color:NV,fontSize:20}}>#{form.quarryMaterialCode}</div></div><div style={{flex:1,background:"#F0FDF4",borderRadius:8,padding:10,textAlign:"center"}}><div style={{fontSize:10,color:"#666"}}>GATE RATE / TON</div><div style={{fontWeight:900,color:"#166534",fontSize:20}}>${form.quarryMaterialPrice}</div></div></div>}</Field>}
+              {form.quarry&&qObj?.materials?.length>0&&<Field label="Stone / Material Type (RJS Pricing)"><select value={form.quarryMaterialName} onChange={e=>{const mat=qObj.materials.find(m=>m.name===e.target.value);if(mat)setMany({quarryMaterialName:mat.name,quarryMaterialCode:mat.code||"",quarryMaterialPrice:mat.rjsPrice||mat.gatePrice||0});else setMany({quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:"",});}} style={S.sel}><option value="">-- Select stone type --</option>{qObj.materials.map((m,i)=><option key={i} value={m.name}>{m.name}{m.code?" (#"+m.code+")":""} — ${parseFloat(m.rjsPrice||m.gatePrice||0).toFixed(2)}/ton</option>)}</select>{form.quarryMaterialName&&<div style={{display:"flex",gap:8,marginTop:8}}><div style={{flex:1,background:"#EEF2FF",borderRadius:8,padding:10,textAlign:"center"}}><div style={{fontSize:10,color:"#666"}}>MATERIAL CODE</div><div style={{fontWeight:900,color:NV,fontSize:20}}>{form.quarryMaterialCode||"—"}</div></div><div style={{flex:1,background:"#F0FDF4",borderRadius:8,padding:10,textAlign:"center"}}><div style={{fontSize:10,color:"#666"}}>RJS RATE / TON</div><div style={{fontWeight:900,color:"#166534",fontSize:20}}>${form.quarryMaterialPrice}</div></div></div>}</Field>}
             </>}
           </div>)}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:12}}><Field label="From Location"><LocationInput value={form.fromLocation} onChange={v=>set("fromLocation",v)} placeholder="Origin / quarry" savedLocations={savedLocations}/></Field><Field label="To Location"><LocationInput value={form.toLocation} onChange={v=>set("toLocation",v)} placeholder="Job site" savedLocations={savedLocations}/></Field></div>
