@@ -44,7 +44,6 @@ const QUARRY_DB = {
   }
 };
 
-// ── Contact templates & normalizers ──────────────────────────────────────────
 const mkContact    = () => ({ name:"", phone:"", email:"", text:"" });
 const mkContactA   = () => ({ name:"", address:"", phone:"", email:"", text:"" });
 const mkDriver     = () => ({ name:"", address:"", phone:"", email:"", text:"", license:"", emergency:mkContact(), notes:"" });
@@ -62,10 +61,8 @@ const normQuarry  = q => {
 const INIT_DRIVERS   = INIT_DRIVER_NAMES.map(name=>({...mkDriver(),name}));
 const INIT_COMPANIES = [{...mkCompany(),name:"RCS"},{...mkCompany(),name:"Stutz"}];
 const INIT_QUARRIES  = [normQuarry("New Frontier Materials – Bluff City")];
-
 const getName = x => typeof x==="string" ? x : (x?.name||"");
 
-// ── Sample data ───────────────────────────────────────────────────────────────
 const SAMPLE_WORK_ORDERS = (() => {
   const QM=QUARRY_DB["New Frontier Materials – Bluff City"].materials;
   const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
@@ -87,7 +84,6 @@ const SAMPLE_WORK_ORDERS = (() => {
   return orders;
 })();
 
-// ── Utils ─────────────────────────────────────────────────────────────────────
 function fmt(d){if(!d)return"";return new Date(d+"T00:00:00").toLocaleDateString("en-US",{month:"2-digit",day:"2-digit",year:"numeric"});}
 function nowDate(){return new Date().toISOString().split("T")[0];}
 let _lastWoNum=4151;
@@ -101,7 +97,6 @@ async function exportFile(content,filename,mimeType,onMsg){
   try{await navigator.clipboard.writeText(content);onMsg&&onMsg("📋 Copied to clipboard! Paste into Excel / Notes / email.");}catch(_){onMsg&&onMsg("⚠️ Could not download. Try Share / Text instead.");}
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
 const S={
   lbl:{display:"block",fontSize:12,fontWeight:700,color:"#555",marginBottom:5,letterSpacing:0.3},
   inp:{width:"100%",padding:"11px 12px",border:"1.5px solid #ddd",borderRadius:8,fontSize:15,outline:"none",boxSizing:"border-box",background:"#fafafa"},
@@ -109,18 +104,12 @@ const S={
   btn:{padding:"13px 20px",border:"none",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer"},
 };
 
-// ── Module-level shared components ────────────────────────────────────────────
 function Toast({msg}){if(!msg)return null;const ok=msg.startsWith("✅")||msg.startsWith("📋");return <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:ok?"#166534":"#92400E",color:"#fff",padding:"12px 20px",borderRadius:12,fontSize:14,fontWeight:600,zIndex:2000,maxWidth:320,textAlign:"center",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>{msg}</div>;}
-
 function Field({label,err,children}){return <div style={{marginBottom:16}}><label style={S.lbl}>{label}{err&&<span style={{color:R,marginLeft:6,fontSize:11}}>{err}</span>}</label>{children}</div>;}
-
 function Section({title,icon,children}){return <div style={{background:"#fff",borderRadius:14,padding:18,marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,paddingBottom:10,borderBottom:"1px solid #f0f0f0"}}><span>{icon}</span><span style={{fontWeight:800,fontSize:12,color:"#888",letterSpacing:1}}>{title}</span></div>{children}</div>;}
-
 function Header({title,sub,onBack,rightSlot}){return <div style={{background:`linear-gradient(135deg,${DR},${R})`,padding:"16px 20px",color:"#fff",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:50}}>{onBack&&<button onClick={onBack} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:20,lineHeight:1,flexShrink:0}}>‹</button>}<div style={{flex:1}}><div style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:18}}>{title}</div>{sub&&<div style={{fontSize:11,opacity:0.8}}>{sub}</div>}</div>{rightSlot}</div>;}
-
 function Modal({title,children,onClose}){return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:900,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{background:"#fff",borderRadius:14,padding:24,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><h3 style={{margin:0,color:DR,fontFamily:"Georgia,serif"}}>{title}</h3><button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#999"}}>×</button></div>{children}</div></div>;}
 
-// ── ContactFields — reusable address/phone/email/text block ───────────────────
 function ContactFields({ value={}, onChange, showName=false, nameLabel="Contact Name", showAddress=true }) {
   const ch = (k,v) => onChange({...value,[k]:v});
   return (
@@ -136,7 +125,6 @@ function ContactFields({ value={}, onChange, showName=false, nameLabel="Contact 
   );
 }
 
-// ── ContactListCard ───────────────────────────────────────────────────────────
 function ContactListCard({icon,name,info=[],badges=[],onEdit}){
   return (
     <div style={{background:"#fff",borderRadius:12,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,0.07)"}}>
@@ -152,7 +140,6 @@ function ContactListCard({icon,name,info=[],badges=[],onEdit}){
   );
 }
 
-// ── ContactEditModal ──────────────────────────────────────────────────────────
 function ContactEditModal({type,data,onSave,onDelete,onClose}){
   const [local,setLocal]=useState(()=>{
     if(type==="driver") return normDriver(data||{});
@@ -163,10 +150,8 @@ function ContactEditModal({type,data,onSave,onDelete,onClose}){
   const updTop=partial=>setLocal(p=>({...p,...partial}));
   const isNew=!data?.name;
   const labels={company:"Company",driver:"Driver",quarry:"Quarry"};
-
   const subSectionStyle={display:"flex",alignItems:"center",gap:8,margin:"4px 0 12px",paddingBottom:8,borderBottom:`2px solid ${R}22`};
   const SubHead=({icon,title})=><div style={subSectionStyle}><span style={{fontSize:16}}>{icon}</span><span style={{fontWeight:800,fontSize:11,color:"#555",letterSpacing:1,textTransform:"uppercase"}}>{title}</span></div>;
-
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.9)",zIndex:800,display:"flex",flexDirection:"column"}}>
       <div style={{background:`linear-gradient(135deg,${DR},${R})`,padding:"14px 16px",color:"#fff",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
@@ -176,7 +161,6 @@ function ContactEditModal({type,data,onSave,onDelete,onClose}){
           <div style={{fontSize:11,opacity:0.75}}>{{company:"Company + billing/AP contacts",driver:"Driver info + emergency contact",quarry:"Quarry + AP + dispatch"}[type]}</div>
         </div>
       </div>
-
       <div style={{flex:1,overflowY:"auto",padding:16,background:"#f4f4f4"}}>
         {type==="driver"&&<>
           <Section title="DRIVER INFORMATION" icon="👷">
@@ -185,60 +169,57 @@ function ContactEditModal({type,data,onSave,onDelete,onClose}){
           </Section>
           <Section title="CONTACT DETAILS" icon="📞">
             <SubHead icon="📍" title="Address & Contact" />
-            <ContactFields value={{address:local.address,phone:local.phone,email:local.email,text:local.text}} onChange={updTop} showAddress={true} />
+            <ContactFields value={{address:local.address,phone:local.phone,email:local.email,text:local.text}} onChange={updTop} showAddress={true}/>
           </Section>
           <Section title="EMERGENCY CONTACT" icon="🚨">
             <SubHead icon="👤" title="Emergency Person" />
-            <ContactFields value={local.emergency} onChange={v=>upd("emergency",v)} showName={true} nameLabel="Emergency Contact Name" showAddress={false} />
+            <ContactFields value={local.emergency} onChange={v=>upd("emergency",v)} showName={true} nameLabel="Emergency Contact Name" showAddress={false}/>
           </Section>
           <Section title="NOTES" icon="📝">
             <Field label="Notes / Comments"><textarea value={local.notes||""} onChange={e=>upd("notes",e.target.value)} style={{...S.inp,height:80,resize:"vertical"}} placeholder="CDL class, restrictions, any other notes..." /></Field>
           </Section>
         </>}
-
         {type==="company"&&<>
           <Section title="COMPANY" icon="🏢">
             <Field label="Company Name *"><input value={local.name||""} onChange={e=>upd("name",e.target.value)} style={S.inp} placeholder="Company name" /></Field>
           </Section>
           <Section title="MAIN OFFICE" icon="📍">
             <SubHead icon="🏢" title="Main Office / Headquarters" />
-            <ContactFields value={{address:local.address,phone:local.phone,email:local.email,text:local.text}} onChange={updTop} showAddress={true} />
+            <ContactFields value={{address:local.address,phone:local.phone,email:local.email,text:local.text}} onChange={updTop} showAddress={true}/>
           </Section>
           <Section title="PRIMARY CONTACT" icon="👤">
             <SubHead icon="👤" title="Primary Contact Person" />
-            <ContactFields value={local.contact} onChange={v=>upd("contact",v)} showName={true} nameLabel="Contact Person Name" showAddress={false} />
+            <ContactFields value={local.contact} onChange={v=>upd("contact",v)} showName={true} nameLabel="Contact Person Name" showAddress={false}/>
           </Section>
           <Section title="BILLING / ACCOUNTS PAYABLE" icon="💳">
             <SubHead icon="💳" title="Billing Office / AP Department" />
-            <ContactFields value={local.billing} onChange={v=>upd("billing",v)} showName={true} nameLabel="Billing Contact Name" showAddress={true} />
+            <ContactFields value={local.billing} onChange={v=>upd("billing",v)} showName={true} nameLabel="Billing Contact Name" showAddress={true}/>
           </Section>
           <Section title="NOTES" icon="📝">
             <Field label="Notes"><textarea value={local.notes||""} onChange={e=>upd("notes",e.target.value)} style={{...S.inp,height:80,resize:"vertical"}} placeholder="Account notes, payment terms, etc." /></Field>
           </Section>
         </>}
-
         {type==="quarry"&&<>
           <Section title="QUARRY" icon="🪨">
             <Field label="Quarry Name *"><input value={local.name||""} onChange={e=>upd("name",e.target.value)} style={S.inp} placeholder="Quarry / pit name" /></Field>
           </Section>
           <Section title="MAIN OFFICE" icon="📍">
             <SubHead icon="🏭" title="Main Office / Gate" />
-            <ContactFields value={{address:local.address,phone:local.phone,email:local.email,text:local.text}} onChange={updTop} showAddress={true} />
+            <ContactFields value={{address:local.address,phone:local.phone,email:local.email,text:local.text}} onChange={updTop} showAddress={true}/>
           </Section>
           <Section title="ACCOUNTS PAYABLE" icon="💳">
             <SubHead icon="💳" title="AP / Billing Department" />
-            <ContactFields value={local.ap} onChange={v=>upd("ap",v)} showName={true} nameLabel="AP Contact Name" showAddress={true} />
+            <ContactFields value={local.ap} onChange={v=>upd("ap",v)} showName={true} nameLabel="AP Contact Name" showAddress={true}/>
           </Section>
           <Section title="SCALE / DISPATCH" icon="⚖️">
             <SubHead icon="⚖️" title="Scale House / Dispatch" />
-            <ContactFields value={local.dispatch} onChange={v=>upd("dispatch",v)} showName={true} nameLabel="Dispatch Contact Name" showAddress={false} />
+            <ContactFields value={local.dispatch} onChange={v=>upd("dispatch",v)} showName={true} nameLabel="Dispatch Contact Name" showAddress={false}/>
           </Section>
           <Section title="NOTES" icon="📝">
             <Field label="Notes / Gate info"><textarea value={local.notes||""} onChange={e=>upd("notes",e.target.value)} style={{...S.inp,height:80,resize:"vertical"}} placeholder="Hours, gate code, pricing notes..." /></Field>
           </Section>
         </>}
       </div>
-
       <div style={{background:"#fff",padding:"14px 16px",display:"flex",gap:10,boxShadow:"0 -4px 16px rgba(0,0,0,0.12)",flexShrink:0}}>
         {onDelete&&<button onClick={()=>{if(window.confirm(`Delete "${local.name}"? This cannot be undone.`))onDelete();}} style={{...S.btn,background:"#FEF2F2",color:"#991b1b",border:"1.5px solid #fecaca",padding:"12px 14px",fontSize:13}}>🗑 Delete</button>}
         <button onClick={onClose} style={{...S.btn,background:"#f0f0f0",color:"#333",padding:"12px 16px"}}>Cancel</button>
@@ -248,20 +229,15 @@ function ContactEditModal({type,data,onSave,onDelete,onClose}){
   );
 }
 
-// ── Location Autocomplete ─────────────────────────────────────────────────────
 function LocationInput({value,onChange,placeholder,savedLocations}){
   const [open,setOpen]=useState(false);
   const matches=savedLocations.filter(l=>l.toLowerCase().includes(value.toLowerCase())&&l.toLowerCase()!==value.toLowerCase());
   return <div style={{position:"relative"}}><input value={value} onChange={e=>{onChange(e.target.value);setOpen(true);}} onFocus={()=>setOpen(true)} onBlur={()=>setTimeout(()=>setOpen(false),180)} style={S.inp} placeholder={placeholder} autoComplete="off" />{open&&matches.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:"1.5px solid #ddd",borderRadius:8,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:200,maxHeight:160,overflowY:"auto"}}>{matches.slice(0,6).map(m=><div key={m} onMouseDown={()=>{onChange(m);setOpen(false);}} style={{padding:"10px 14px",fontSize:14,cursor:"pointer",borderBottom:"1px solid #f0f0f0"}} onMouseEnter={e=>e.target.style.background="#f5f5f5"} onMouseLeave={e=>e.target.style.background="#fff"}>📍 {m}</div>)}</div>}</div>;
 }
 
-// ── Signature Canvas ──────────────────────────────────────────────────────────
 function SigCanvas({onSave,onCancel,label}){
   const canvasRef=useRef(null),drawing=useRef(false),lastPos=useRef(null);
-  const getPos=(e,canvas)=>{
-    const r=canvas.getBoundingClientRect(),scaleX=canvas.width/r.width,scaleY=canvas.height/r.height,src=e.touches?e.touches[0]:e;
-    return{x:(src.clientX-r.left)*scaleX,y:(src.clientY-r.top)*scaleY};
-  };
+  const getPos=(e,canvas)=>{const r=canvas.getBoundingClientRect(),scaleX=canvas.width/r.width,scaleY=canvas.height/r.height,src=e.touches?e.touches[0]:e;return{x:(src.clientX-r.left)*scaleX,y:(src.clientY-r.top)*scaleY};};
   const start=e=>{e.preventDefault();drawing.current=true;const pos=getPos(e,canvasRef.current);lastPos.current=pos;const ctx=canvasRef.current.getContext("2d");ctx.beginPath();ctx.arc(pos.x,pos.y,1.5,0,Math.PI*2);ctx.fillStyle="#000";ctx.fill();};
   const move=e=>{e.preventDefault();if(!drawing.current)return;const canvas=canvasRef.current,ctx=canvas.getContext("2d"),pos=getPos(e,canvas);ctx.beginPath();ctx.moveTo(lastPos.current.x,lastPos.current.y);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle="#000";ctx.lineWidth=2.5;ctx.lineCap="round";ctx.stroke();lastPos.current=pos;};
   const end=()=>{drawing.current=false;};
@@ -283,9 +259,63 @@ function SigCanvas({onSave,onCancel,label}){
   );
 }
 
-// ── Login ─────────────────────────────────────────────────────────────────────
-function LoginScreen({drivers,onLogin,onAdmin}){
-  const [selected,setSelected]=useState(""),[ err,setErr]=useState("");
+function PinModal({title,subtitle,error,onDone,onCancel}){
+  const [digits,setDigits]=useState([]);
+  const add=d=>{if(digits.length>=4)return;const n=[...digits,d];setDigits(n);if(n.length===4)setTimeout(()=>{setDigits([]);onDone(n.join(""));},120);};
+  const del=()=>setDigits(d=>d.slice(0,-1));
+  const keys=["1","2","3","4","5","6","7","8","9","","0","⌫"];
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.93)",zIndex:1100,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{background:"#fff",borderRadius:20,padding:28,width:"100%",maxWidth:320,textAlign:"center",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
+        <div style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:20,color:DR,marginBottom:4}}>{title}</div>
+        {subtitle&&<div style={{fontSize:13,color:"#888",marginBottom:20}}>{subtitle}</div>}
+        <div style={{display:"flex",justifyContent:"center",gap:14,margin:"20px 0"}}>
+          {[0,1,2,3].map(i=><div key={i} style={{width:18,height:18,borderRadius:"50%",background:digits.length>i?NV:"#e5e7eb",border:"2px solid",borderColor:digits.length>i?NV:"#d1d5db",transition:"background 0.15s"}}/>)}
+        </div>
+        {error&&<div style={{background:"#FEF2F2",color:"#991b1b",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:600,marginBottom:14}}>{error}</div>}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+          {keys.map((k,i)=>k===""?<div key={i}/>:<button key={i} onClick={k==="⌫"?del:()=>add(k)} style={{padding:"16px 0",fontSize:k==="⌫"?20:22,fontWeight:700,border:"1.5px solid #e5e7eb",borderRadius:12,background:k==="⌫"?"#f4f4f4":"#fff",color:k==="⌫"?"#666":"#1a1a1a",cursor:"pointer",lineHeight:1}}>{k}</button>)}
+        </div>
+        <button onClick={onCancel} style={{width:"100%",background:"none",border:"none",color:"#bbb",fontSize:13,cursor:"pointer",padding:8}}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function LoginScreen({drivers,driverPins,adminPin,onLogin,onAdmin,onSavePin}){
+  const [selected,setSelected]=useState("");
+  const [err,setErr]=useState("");
+  const [pinStep,setPinStep]=useState(null);
+  const [pendingPin,setPendingPin]=useState("");
+  const [pinError,setPinError]=useState("");
+
+  const startLogin=()=>{
+    if(!selected){setErr("Please select your name");return;}
+    setErr("");setPinError("");setPendingPin("");
+    if(driverPins[selected]){setPinStep("driver-enter");}
+    else{setPinStep("driver-create");}
+  };
+
+  const handlePinDone=pin=>{
+    setPinError("");
+    if(pinStep==="driver-create"){setPendingPin(pin);setPinStep("driver-confirm");}
+    else if(pinStep==="driver-confirm"){
+      if(pin===pendingPin){onSavePin(selected,pin);setPinStep(null);onLogin(selected);}
+      else{setPinError("PINs don't match — try again");setPendingPin("");setPinStep("driver-create");}
+    }
+    else if(pinStep==="driver-enter"){
+      if(pin===driverPins[selected]){setPinStep(null);onLogin(selected);}
+      else{setPinError("Wrong PIN — try again");}
+    }
+    else if(pinStep==="admin-enter"){
+      if(pin===adminPin){setPinStep(null);onAdmin();}
+      else{setPinError("Wrong admin PIN");}
+    }
+  };
+
+  const PIN_TITLES={"driver-create":"Create Your PIN","driver-confirm":"Confirm Your PIN","driver-enter":"Enter Your PIN","admin-enter":"Admin PIN Required"};
+  const PIN_SUBS={"driver-create":`First time setup for ${selected}`,"driver-confirm":"Re-enter the same PIN to confirm","driver-enter":`Welcome back, ${selected}`,"admin-enter":"Enter master admin PIN to continue"};
+
   return(
     <div style={{minHeight:"100vh",background:`linear-gradient(160deg,${DR} 0%,${R} 50%,#1a1a1a 100%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{textAlign:"center",marginBottom:36}}>
@@ -304,16 +334,16 @@ function LoginScreen({drivers,onLogin,onAdmin}){
           {drivers.map(d=>{const n=getName(d);return <option key={n} value={n}>{n}</option>;})}
         </select>
         {err&&<p style={{color:R,fontSize:12,margin:"6px 0 0"}}>{err}</p>}
-        <button onClick={()=>{if(!selected){setErr("Please select your name");return;}onLogin(selected);}} style={{...S.btn,background:R,color:"#fff",marginTop:20,width:"100%",fontSize:17}}>Clock In &amp; Start</button>
-        <button onClick={onAdmin} style={{marginTop:10,width:"100%",background:"none",border:"none",color:"#bbb",fontSize:12,cursor:"pointer",padding:8}}>Admin / Settings ›</button>
+        <button onClick={startLogin} style={{...S.btn,background:R,color:"#fff",marginTop:20,width:"100%",fontSize:17}}>Clock In &amp; Start</button>
+        <button onClick={()=>{setPinError("");setPendingPin("");setPinStep("admin-enter");}} style={{marginTop:10,width:"100%",background:"none",border:"none",color:"#bbb",fontSize:12,cursor:"pointer",padding:8}}>Admin / Settings ›</button>
       </div>
       <p style={{color:"rgba(255,255,255,0.35)",fontSize:11,marginTop:24}}>Bob Sanders 618-818-8225 • Glenn Sanders 618-779-6576</p>
+      {pinStep&&<PinModal title={PIN_TITLES[pinStep]} subtitle={PIN_SUBS[pinStep]} error={pinError} onDone={handlePinDone} onCancel={()=>{setPinStep(null);setPinError("");setPendingPin("");}}/>}
     </div>
   );
 }
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
-function Dashboard({driver,onNewWO,onQueue,onReports,onLogout,onAdmin,onEndOfDay,workOrders}){
+function Dashboard({driver,onNewWO,onQueue,onReports,onLogout,onEndOfDay,workOrders}){
   const today=nowDate();
   const todayWOs=workOrders.filter(w=>w.date===today);
   const weekStart=new Date();weekStart.setDate(weekStart.getDate()-weekStart.getDay());weekStart.setHours(0,0,0,0);
@@ -332,8 +362,8 @@ function Dashboard({driver,onNewWO,onQueue,onReports,onLogout,onAdmin,onEndOfDay
       <div style={{padding:20,marginTop:-10}}>
         <button onClick={onNewWO} style={{width:"100%",background:R,color:"#fff",border:"none",borderRadius:16,padding:20,fontSize:18,fontWeight:700,cursor:"pointer",boxShadow:"0 8px 24px rgba(200,16,46,0.4)",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}><span style={{fontSize:24}}>＋</span> New Work Order</button>
         <button onClick={onEndOfDay} style={{width:"100%",background:NV,color:"#fff",border:"none",borderRadius:14,padding:"16px 20px",fontSize:16,fontWeight:700,cursor:"pointer",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 4px 16px rgba(13,43,107,0.35)"}}><span style={{fontSize:22}}>⛽</span> End of Day — Log Fuel &amp; Hours</button>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
-          {[{icon:"📋",label:"Queue",sub:`${workOrders.length}`,action:onQueue},{icon:"📊",label:"Reports",sub:"Daily/Wkly",action:onReports},{icon:"⚙️",label:"Admin",sub:"Contacts",action:onAdmin}].map(a=><button key={a.label} onClick={a.action} style={{background:"#fff",border:"none",borderRadius:14,padding:"16px 10px",cursor:"pointer",textAlign:"center",boxShadow:"0 2px 10px rgba(0,0,0,0.08)"}}><div style={{fontSize:24,marginBottom:4}}>{a.icon}</div><div style={{fontWeight:700,color:"#1a1a1a",fontSize:13}}>{a.label}</div><div style={{color:"#888",fontSize:11,marginTop:2}}>{a.sub}</div></button>)}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+          {[{icon:"📋",label:"Queue",sub:`${workOrders.length}`,action:onQueue},{icon:"📊",label:"Reports",sub:"Daily/Wkly",action:onReports}].map(a=><button key={a.label} onClick={a.action} style={{background:"#fff",border:"none",borderRadius:14,padding:"16px 10px",cursor:"pointer",textAlign:"center",boxShadow:"0 2px 10px rgba(0,0,0,0.08)"}}><div style={{fontSize:24,marginBottom:4}}>{a.icon}</div><div style={{fontWeight:700,color:"#1a1a1a",fontSize:13}}>{a.label}</div><div style={{color:"#888",fontSize:11,marginTop:2}}>{a.sub}</div></button>)}
         </div>
         {todayWOs.length>0&&<div style={{background:"#fff",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}}><h3 style={{margin:"0 0 12px",fontSize:12,color:"#555",fontWeight:800,letterSpacing:1}}>TODAY'S TICKETS</h3>{todayWOs.slice(-5).reverse().map((wo,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<Math.min(todayWOs.length,5)-1?"1px solid #f0f0f0":"none"}}><div><div style={{fontWeight:600,fontSize:13}}>{wo.workOrderNumber}</div><div style={{color:"#888",fontSize:12}}>{wo.companyWorkedFor||"—"} • {wo.topMaterial}</div></div><span style={{background:wo.status==="complete"?"#dcfce7":"#fef9c3",color:wo.status==="complete"?"#166534":"#854d0e",fontSize:11,padding:"3px 10px",borderRadius:20,fontWeight:600}}>{wo.status==="complete"?"✓ Signed":"Draft"}</span></div>)}</div>}
       </div>
@@ -341,8 +371,7 @@ function Dashboard({driver,onNewWO,onQueue,onReports,onLogout,onAdmin,onEndOfDay
   );
 }
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
-function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],onSave,onLoadSample,onClearSample}){
+function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],onSave,onLoadSample,onClearSample,adminPin,driverPins,onChangeAdminPin,onResetDriverPin}){
   const [tab,setTab]=useState("companies");
   const [localDrivers,setLocalDrivers]=useState(()=>drivers.map(normDriver));
   const [localCompanies,setLocalCompanies]=useState(()=>companies.map(normCompany));
@@ -351,8 +380,13 @@ function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],o
   const [savedMsg,setSavedMsg]=useState("");
   const [reportView,setReportView]=useState("weekly"),[reportDriver,setReportDriver]=useState("all");
   const [exportMsg,setExportMsg]=useState("");
+  const [secPinStep,setSecPinStep]=useState(null);
+  const [secPendingPin,setSecPendingPin]=useState("");
+  const [secPinError,setSecPinError]=useState("");
+  const [secMsg,setSecMsg]=useState("");
 
   const showSaved=()=>{setSavedMsg("✓ Saved!");setTimeout(()=>setSavedMsg(""),2200);};
+  const showSecMsg=m=>{setSecMsg(m);setTimeout(()=>setSecMsg(""),3000);};
   const autoSave=(d,c,q)=>{onSave({drivers:d||localDrivers,companies:c||localCompanies,quarries:q||localQuarries});showSaved();};
 
   const handleContactSave=saved=>{
@@ -371,27 +405,18 @@ function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],o
   };
 
   const now=new Date();
-  const filterWOs=()=>{
-    let f=[...workOrders];if(reportDriver!=="all")f=f.filter(w=>w.driver===reportDriver);
-    if(reportView==="daily"){const t=nowDate();f=f.filter(w=>w.date===t);}
-    else if(reportView==="weekly"){const ws=new Date();ws.setDate(ws.getDate()-ws.getDay());ws.setHours(0,0,0,0);f=f.filter(w=>new Date(w.date+"T00:00:00")>=ws);}
-    else if(reportView==="monthly"){f=f.filter(w=>{const d=new Date(w.date+"T00:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});}
-    else{f=f.filter(w=>new Date(w.date+"T00:00:00").getFullYear()===now.getFullYear());}
-    return f;
-  };
+  const filterWOs=()=>{let f=[...workOrders];if(reportDriver!=="all")f=f.filter(w=>w.driver===reportDriver);if(reportView==="daily"){const t=nowDate();f=f.filter(w=>w.date===t);}else if(reportView==="weekly"){const ws=new Date();ws.setDate(ws.getDate()-ws.getDay());ws.setHours(0,0,0,0);f=f.filter(w=>new Date(w.date+"T00:00:00")>=ws);}else if(reportView==="monthly"){f=f.filter(w=>{const d=new Date(w.date+"T00:00:00");return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});}else{f=f.filter(w=>new Date(w.date+"T00:00:00").getFullYear()===now.getFullYear());}return f;};
   const reportWOs=filterWOs();
   const totalST=reportWOs.reduce((a,w)=>a+parseFloat(w.straightTime||0),0);
   const totalOT=reportWOs.reduce((a,w)=>a+parseFloat(w.overtime||0),0);
   const byDriver={};
   reportWOs.forEach(w=>{if(!byDriver[w.driver])byDriver[w.driver]={count:0,st:0,ot:0,gallons:0,companies:new Set(),trucks:new Set()};const d=byDriver[w.driver];d.count++;d.st+=parseFloat(w.straightTime||0);d.ot+=parseFloat(w.overtime||0);d.gallons+=parseFloat(w.gallons||0);if(w.companyWorkedFor)d.companies.add(w.companyWorkedFor);if(w.truckNumber)d.trucks.add(w.truckNumber);});
 
-  const doExportCSV=async()=>{
-    const rows=[["WO Number","Date","Driver","Truck","Company","Material","From","To","Arrived","Released","Straight Hrs","OT Hrs","Rate/Hr","Rate/Load","Remarks"],...reportWOs.map(w=>[w.workOrderNumber,w.date,w.driver,w.truckNumber,w.companyWorkedFor,[w.topMaterial,w.materialHauled].filter(Boolean).join(" > "),w.fromLocation,w.toLocation,w.arrivedTime,w.releasedTime,w.straightTime,w.overtimeEnabled?(w.overtime||""):"",w.ratePerHour,w.ratePerLoad,w.remarks])];
-    const csv=rows.map(r=>r.map(c=>`"${(c||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
-    await exportFile(csv,`RJS-Report-${reportView}-${nowDate()}.csv`,"text/csv;charset=utf-8;",m=>{setExportMsg(m);setTimeout(()=>setExportMsg(""),5000);});
-  };
+  const doExportCSV=async()=>{const rows=[["WO Number","Date","Driver","Truck","Company","Material","From","To","Arrived","Released","Straight Hrs","OT Hrs","Rate/Hr","Rate/Load","Remarks"],...reportWOs.map(w=>[w.workOrderNumber,w.date,w.driver,w.truckNumber,w.companyWorkedFor,[w.topMaterial,w.materialHauled].filter(Boolean).join(" > "),w.fromLocation,w.toLocation,w.arrivedTime,w.releasedTime,w.straightTime,w.overtimeEnabled?(w.overtime||""):"",w.ratePerHour,w.ratePerLoad,w.remarks])];const csv=rows.map(r=>r.map(c=>`"${(c||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");await exportFile(csv,`RJS-Report-${reportView}-${nowDate()}.csv`,"text/csv;charset=utf-8;",m=>{setExportMsg(m);setTimeout(()=>setExportMsg(""),5000);});};
 
-  const TABS=[{id:"companies",label:"🏢 Companies"},{id:"drivers",label:"👷 Drivers"},{id:"quarries",label:"🪨 Quarries"},{id:"reports",label:"📊 Reports"}];
+  const handleSecPinDone=pin=>{setSecPinError("");if(secPinStep==="new"){setSecPendingPin(pin);setSecPinStep("confirm");}else if(secPinStep==="confirm"){if(pin===secPendingPin){onChangeAdminPin(pin);setSecPinStep(null);setSecPendingPin("");showSecMsg("✓ Admin PIN updated!");}else{setSecPinError("PINs don't match — try again");setSecPinStep("new");setSecPendingPin("");}}};
+
+  const TABS=[{id:"companies",label:"🏢 Companies"},{id:"drivers",label:"👷 Drivers"},{id:"quarries",label:"🪨 Quarries"},{id:"reports",label:"📊 Reports"},{id:"security",label:"🔐 Security"}];
   const modalData=editModal&&editModal.idx!==null?{driver:localDrivers,company:localCompanies,quarry:localQuarries}[editModal.type]?.[editModal.idx]:null;
 
   return(
@@ -437,15 +462,27 @@ function AdminScreen({onBack,drivers,companies,quarries,workOrders,fuelLogs=[],o
             {workOrders.filter(w=>w.isSampleData).length>0&&<p style={{margin:"10px 0 0",fontSize:11,color:"#059669",textAlign:"center"}}>✓ {workOrders.filter(w=>w.isSampleData).length} sample tickets loaded</p>}
           </div>
         </>}
+        {tab==="security"&&<>
+          {secMsg&&<div style={{background:"#dcfce7",color:"#166534",borderRadius:10,padding:"10px 14px",marginBottom:14,fontWeight:700,fontSize:13,textAlign:"center"}}>{secMsg}</div>}
+          <Section title="ADMIN PIN" icon="🔐">
+            <p style={{fontSize:13,color:"#555",margin:"0 0 12px"}}>The master admin PIN controls access to this Admin panel. Default is <strong>1234</strong> — change it now.</p>
+            <div style={{background:"#EEF2FF",borderRadius:10,padding:12,marginBottom:14,fontSize:13,color:NV,fontWeight:600,textAlign:"center"}}>Current PIN: {"•".repeat(adminPin.length)} ({adminPin.length} digits)</div>
+            <button onClick={()=>{setSecPinError("");setSecPendingPin("");setSecPinStep("new");}} style={{...S.btn,background:NV,color:"#fff",width:"100%",fontSize:15,padding:14}}>🔒 Change Admin PIN</button>
+          </Section>
+          <Section title="DRIVER PINs" icon="👷">
+            <p style={{fontSize:13,color:"#555",margin:"0 0 12px"}}>Reset a driver's PIN so they can create a new one on their next sign-in.</p>
+            {localDrivers.map((d,i)=>{const n=getName(d);const hasPin=!!driverPins[n];return(<div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid #f0f0f0"}}><div><div style={{fontWeight:700,fontSize:14}}>{n}</div><div style={{fontSize:12,color:hasPin?"#166534":"#92400E",fontWeight:600}}>{hasPin?"🔒 PIN set":"⚠️ No PIN yet"}</div></div>{hasPin&&<button onClick={()=>{if(window.confirm(`Reset PIN for ${n}? They will create a new one on next sign-in.`))onResetDriverPin(n);}} style={{...S.btn,background:"#FEF2F2",color:"#991b1b",border:"1.5px solid #fecaca",padding:"7px 14px",fontSize:12}}>Reset</button>}</div>);})}
+          </Section>
+          {secPinStep&&<PinModal title={secPinStep==="new"?"New Admin PIN":"Confirm New PIN"} subtitle={secPinStep==="new"?"Enter a new 4-digit master PIN":"Enter the same PIN again to confirm"} error={secPinError} onDone={handleSecPinDone} onCancel={()=>{setSecPinStep(null);setSecPinError("");setSecPendingPin("");}}/>}
+        </>}
       </div>
       {editModal&&(<ContactEditModal type={editModal.type} data={modalData} onSave={handleContactSave} onDelete={editModal.idx!==null?handleContactDelete:undefined} onClose={()=>setEditModal(null)}/>)}
     </div>
   );
 }
 
-// ── Work Order Form ────────────────────────────────────────────────────────────
 function WorkOrderForm({driver,quarries,companies,savedLocations=[],onSubmit,onCancel}){
-  const [form,setForm]=useState({workOrderNumber:nextWoNum(),date:nowDate(),equipmentType:"Dump",truckNumber:"",jobName:"",jobNumber:"",topMaterial:"",materialHauled:"",quarryKnown:null,quarry:"",quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:"",arrivedTime:"",releasedTime:"",lunchWorked:null,overtimeEnabled:false,straightTime:"",overtime:"",fromLocation:"",toLocation:"",companyWorkedFor:"",companyAddress:"",companyPhone:"",companyContactName:"",companyContactPhone:"",companyContactEmail:"",companyBillingName:"",companyBillingPhone:"",companyBillingEmail:"",ratePerHour:"",ratePerLoad:"",gallons:"",remarks:"",driver});
+  const [form,setForm]=useState({workOrderNumber:nextWoNum(),date:nowDate(),equipmentType:"Dump",truckNumber:"",jobName:"",jobNumber:"",topMaterial:"",materialHauled:"",quarryKnown:null,quarry:"",quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:"",arrivedTime:"",releasedTime:"",lunchWorked:null,overtimeEnabled:false,straightTime:"",overtime:"",fromLocation:"",toLocation:"",companyWorkedFor:"",companyAddress:"",companyPhone:"",companyContactName:"",companyContactPhone:"",companyContactEmail:"",companyBillingName:"",companyBillingPhone:"",companyBillingEmail:"",ratePerHour:"",ratePerLoad:"",gallons:"",remarks:"",driver,});
   const [errors,setErrors]=useState({});
   const [showNewQuarry,setShowNewQuarry]=useState(false),[newQuarryName,setNewQuarryName]=useState("");
   const [localQuarries,setLocalQuarries]=useState(()=>quarries.map(normQuarry));
@@ -476,7 +513,9 @@ function WorkOrderForm({driver,quarries,companies,savedLocations=[],onSubmit,onC
           <Field label="Phone"><input type="tel" value={form.companyPhone} onChange={e=>set("companyPhone",e.target.value)} style={S.inp} placeholder="(000) 000-0000"/></Field>
         </Section>
         <Section title="MATERIAL HAULED" icon="⛏️">
-          <Field label="Material Category" err={errors.topMaterial}><div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:12}}>{TOP_MATERIALS.map(m=><button key={m} onClick={()=>setMany({topMaterial:m,materialHauled:"",quarry:"",quarryKnown:null,quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:""})} style={{padding:"10px 8px",border:`2px solid ${form.topMaterial===m?R:"#ddd"}`,borderRadius:10,background:form.topMaterial===m?R:"#fff",color:form.topMaterial===m?"#fff":"#333",fontSize:12,fontWeight:600,cursor:"pointer"}}>{m}</button>)}</div></Field>
+          <Field label="Material Category" err={errors.topMaterial}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:12}}>{TOP_MATERIALS.map(m=><button key={m} onClick={()=>setMany({topMaterial:m,materialHauled:"",quarry:"",quarryKnown:null,quarryMaterialName:"",quarryMaterialCode:"",quarryMaterialPrice:""})} style={{padding:"10px 8px",border:`2px solid ${form.topMaterial===m?R:"#ddd"}`,borderRadius:10,background:form.topMaterial===m?R:"#fff",color:form.topMaterial===m?"#fff":"#333",fontSize:12,fontWeight:600,cursor:"pointer"}}>{m}</button>)}</div>
+          </Field>
           {form.topMaterial&&<Field label={`${form.topMaterial} — Type`}><select value={form.materialHauled} onChange={e=>set("materialHauled",e.target.value)} style={S.sel}><option value="">-- Select type --</option>{MATERIAL_TREE[form.topMaterial].map(sub=><option key={sub} value={sub}>{sub}</option>)}</select></Field>}
           {needsQuarry&&form.topMaterial&&(<div style={{background:"#FFF8F0",border:"1px solid #FBBF24",borderRadius:10,padding:14,marginTop:4}}>
             <p style={{margin:"0 0 10px",fontWeight:700,color:"#92400E",fontSize:13}}>🪨 Do you know the quarry / source?</p>
@@ -507,7 +546,6 @@ function WorkOrderForm({driver,quarries,companies,savedLocations=[],onSubmit,onC
   );
 }
 
-// ── Signature Screen ──────────────────────────────────────────────────────────
 function SignatureScreen({form,onComplete,onBack}){
   const [driverSig,setDriverSig]=useState(null),[foremanSig,setForemanSig]=useState(null),[activeCanvas,setActiveCanvas]=useState(null);
   const ready=driverSig&&foremanSig;
@@ -524,10 +562,9 @@ function SignatureScreen({form,onComplete,onBack}){
   );
 }
 
-// ── Invoice Preview ────────────────────────────────────────────────────────────
 function InvoicePreview({workOrder:wo,onClose,onNewOrder}){
   const [msg,setMsg]=useState("");
-  const buildText=()=>["=================================","          RJS HAULING","  25603 Bethel Lane • Dow, IL 62022","  Bob: 618-818-8225 | Glenn: 618-779-6576","=================================",`WO #: ${wo.workOrderNumber}`,`Date: ${fmt(wo.date)}`,`Driver: ${wo.driver}`,`Truck: ${wo.truckNumber} (${wo.equipmentType})`,"---",`Job: ${wo.jobName||"—"} / ${wo.jobNumber||"—"}`,`Company: ${wo.companyWorkedFor||"—"}`,wo.companyAddress&&`Address: ${wo.companyAddress}`,wo.companyPhone&&`Phone: ${wo.companyPhone}`,wo.companyContactName&&`Contact: ${wo.companyContactName}${wo.companyContactPhone?" — "+wo.companyContactPhone:""}`,wo.companyBillingName&&`Billing: ${wo.companyBillingName}${wo.companyBillingPhone?" — "+wo.companyBillingPhone:""}`,  "---",`Material: ${wo.topMaterial}${wo.materialHauled?" › "+wo.materialHauled:""}`,wo.quarry&&`Quarry: ${wo.quarry}`,wo.quarryMaterialName&&`Stone: ${wo.quarryMaterialName} #${wo.quarryMaterialCode} @ $${wo.quarryMaterialPrice}/ton`,`From: ${wo.fromLocation||"—"}`,`To: ${wo.toLocation||"—"}`,"---",`Arrived: ${wo.arrivedTime||"—"}`,`Released: ${wo.releasedTime||"—"}`,wo.lunchWorked!==null&&`Lunch: ${wo.lunchWorked?"Worked through":"Took 30-min break"}`,`Straight Hrs: ${wo.straightTime||"—"}`,wo.overtimeEnabled&&wo.overtime&&`Overtime: ${wo.overtime} hrs`,"---",wo.ratePerHour&&`Rate/Hr: $${wo.ratePerHour}`,wo.ratePerLoad&&`Rate/Load: $${wo.ratePerLoad}`,wo.gallons&&`Fuel: ${wo.gallons} gal`,wo.remarks&&`Notes: ${wo.remarks}`,"---","Signed by Driver & Foreman","=================================","TERMS: Net 30. Over 30 days = 2% service charge.","================================="].filter(Boolean).join("\n");
+  const buildText=()=>["=================================","          RJS HAULING","  25603 Bethel Lane • Dow, IL 62022","  Bob: 618-818-8225 | Glenn: 618-779-6576","=================================",`WO #: ${wo.workOrderNumber}`,`Date: ${fmt(wo.date)}`,`Driver: ${wo.driver}`,`Truck: ${wo.truckNumber} (${wo.equipmentType})`,"---",`Job: ${wo.jobName||"—"} / ${wo.jobNumber||"—"}`,`Company: ${wo.companyWorkedFor||"—"}`,wo.companyAddress&&`Address: ${wo.companyAddress}`,wo.companyPhone&&`Phone: ${wo.companyPhone}`,wo.companyContactName&&`Contact: ${wo.companyContactName}${wo.companyContactPhone?" — "+wo.companyContactPhone:""}`,wo.companyBillingName&&`Billing: ${wo.companyBillingName}${wo.companyBillingPhone?" — "+wo.companyBillingPhone:""}`, "---",`Material: ${wo.topMaterial}${wo.materialHauled?" › "+wo.materialHauled:""}`,wo.quarry&&`Quarry: ${wo.quarry}`,wo.quarryMaterialName&&`Stone: ${wo.quarryMaterialName} #${wo.quarryMaterialCode} @ $${wo.quarryMaterialPrice}/ton`,`From: ${wo.fromLocation||"—"}`,`To: ${wo.toLocation||"—"}`,"---",`Arrived: ${wo.arrivedTime||"—"}`,`Released: ${wo.releasedTime||"—"}`,wo.lunchWorked!==null&&`Lunch: ${wo.lunchWorked?"Worked through":"Took 30-min break"}`,`Straight Hrs: ${wo.straightTime||"—"}`,wo.overtimeEnabled&&wo.overtime&&`Overtime: ${wo.overtime} hrs`,"---",wo.ratePerHour&&`Rate/Hr: $${wo.ratePerHour}`,wo.ratePerLoad&&`Rate/Load: $${wo.ratePerLoad}`,wo.gallons&&`Fuel: ${wo.gallons} gal`,wo.remarks&&`Notes: ${wo.remarks}`,"---","Signed by Driver & Foreman","=================================","TERMS: Net 30. Over 30 days = 2% service charge.","================================="].filter(Boolean).join("\n");
   const handleShare=async()=>{const text=buildText();if(navigator.share){try{await navigator.share({title:`RJS WO ${wo.workOrderNumber}`,text});return;}catch(e){}}try{await navigator.clipboard.writeText(text);setMsg("📋 Copied! Paste into any email or message.");}catch{setMsg("⚠️ Could not copy.");}setTimeout(()=>setMsg(""),4000);};
   const handleEmail=()=>window.open(`mailto:?subject=${encodeURIComponent(`RJS Work Order ${wo.workOrderNumber}`)}&body=${encodeURIComponent(buildText())}`);
   const handlePrint=async()=>await exportFile(buildText(),`RJS-${wo.workOrderNumber}.txt`,"text/plain",m=>{setMsg(m);setTimeout(()=>setMsg(""),5000);});
@@ -542,22 +579,13 @@ function InvoicePreview({workOrder:wo,onClose,onNewOrder}){
       </div>
       <div style={{padding:16}}>
         <div style={{background:"#fff",borderRadius:14,padding:24,boxShadow:"0 4px 24px rgba(0,0,0,0.12)",fontFamily:"Georgia,serif"}}>
-          <div style={{textAlign:"center",borderBottom:"3px solid #1a1a1a",paddingBottom:12,marginBottom:14}}><div style={{fontSize:30,fontWeight:900,color:"#1a1a1a"}}>RJS Hauling</div><div style={{fontSize:13,color:"#555"}}>25603 Bethel Lane • Dow, IL 62022</div><div style={{display:"flex",justifyContent:"space-between",marginTop:10,fontSize:12}}><div><strong>Bob Sanders</strong><br/>618-818-8225</div><div style={{textAlign:"center",color:"#666",fontSize:10,lineHeight:1.7}}>ROCK • SAND • DIRT • ASPHALT<br/>GRAVEL • BUILDING MATERIALS<br/>STRUCTURAL DEMO</div><div style={{textAlign:"right"}}><strong>Glenn Sanders</strong><br/>618-779-6576</div></div></div>
+          <div style={{textAlign:"center",borderBottom:"3px solid #1a1a1a",paddingBottom:12,marginBottom:14}}>
+            <div style={{fontSize:30,fontWeight:900,color:"#1a1a1a"}}>RJS Hauling</div>
+            <div style={{fontSize:13,color:"#555"}}>25603 Bethel Lane • Dow, IL 62022</div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:10,fontSize:12}}><div><strong>Bob Sanders</strong><br/>618-818-8225</div><div style={{textAlign:"center",color:"#666",fontSize:10,lineHeight:1.7}}>ROCK • SAND • DIRT • ASPHALT<br/>GRAVEL • BUILDING MATERIALS<br/>STRUCTURAL DEMO</div><div style={{textAlign:"right"}}><strong>Glenn Sanders</strong><br/>618-779-6576</div></div>
+          </div>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,fontSize:13}}><span><strong>No.</strong> {wo.workOrderNumber}</span><span><strong>Date:</strong> {fmt(wo.date)}</span></div>
-          <InvRow label="Driver" value={wo.driver}/><InvRow label="Equipment" value={`${wo.equipmentType} — ${wo.truckNumber}`}/>
-          <InvRow label="Job Name" value={wo.jobName}/><InvRow label="Job Number" value={wo.jobNumber}/>
-          <InvRow label="Company" value={wo.companyWorkedFor}/><InvRow label="Address" value={wo.companyAddress}/><InvRow label="Phone" value={wo.companyPhone}/>
-          <InvRow label="Contact" value={wo.companyContactName?`${wo.companyContactName}${wo.companyContactPhone?" — "+wo.companyContactPhone:""}`:null}/>
-          <InvRow label="Billing" value={wo.companyBillingName?`${wo.companyBillingName}${wo.companyBillingPhone?" — "+wo.companyBillingPhone:""}`:null}/>
-          <InvRow label="Material" value={[wo.topMaterial,wo.materialHauled].filter(Boolean).join(" › ")}/>
-          <InvRow label="Quarry" value={wo.quarry}/><InvRow label="Stone Type" value={wo.quarryMaterialName?`${wo.quarryMaterialName} #${wo.quarryMaterialCode} @ $${wo.quarryMaterialPrice}/ton`:null}/>
-          <InvRow label="From" value={wo.fromLocation}/><InvRow label="To" value={wo.toLocation}/>
-          <InvRow label="Arrived" value={wo.arrivedTime}/><InvRow label="Released" value={wo.releasedTime}/>
-          <InvRow label="Lunch" value={wo.lunchWorked===true?"Worked Through":wo.lunchWorked===false?"Took 30-min Break":null}/>
-          <InvRow label="Straight Time" value={wo.straightTime?`${wo.straightTime} hrs`:null}/>
-          {wo.overtimeEnabled&&<InvRow label="Overtime" value={wo.overtime?`${wo.overtime} hrs`:null}/>}
-          <InvRow label="Rate / Hour" value={wo.ratePerHour?`$${wo.ratePerHour}`:null}/><InvRow label="Rate / Load" value={wo.ratePerLoad?`$${wo.ratePerLoad}`:null}/>
-          <InvRow label="Gallons Used" value={wo.gallons?`${wo.gallons} gal`:null}/><InvRow label="Remarks" value={wo.remarks}/>
+          <InvRow label="Driver" value={wo.driver}/><InvRow label="Equipment" value={`${wo.equipmentType} — ${wo.truckNumber}`}/><InvRow label="Job Name" value={wo.jobName}/><InvRow label="Job Number" value={wo.jobNumber}/><InvRow label="Company" value={wo.companyWorkedFor}/><InvRow label="Address" value={wo.companyAddress}/><InvRow label="Phone" value={wo.companyPhone}/><InvRow label="Contact" value={wo.companyContactName?`${wo.companyContactName}${wo.companyContactPhone?" — "+wo.companyContactPhone:""}`:null}/><InvRow label="Billing" value={wo.companyBillingName?`${wo.companyBillingName}${wo.companyBillingPhone?" — "+wo.companyBillingPhone:""}`:null}/><InvRow label="Material" value={[wo.topMaterial,wo.materialHauled].filter(Boolean).join(" › ")}/><InvRow label="Quarry" value={wo.quarry}/><InvRow label="Stone Type" value={wo.quarryMaterialName?`${wo.quarryMaterialName} #${wo.quarryMaterialCode} @ $${wo.quarryMaterialPrice}/ton`:null}/><InvRow label="From" value={wo.fromLocation}/><InvRow label="To" value={wo.toLocation}/><InvRow label="Arrived" value={wo.arrivedTime}/><InvRow label="Released" value={wo.releasedTime}/><InvRow label="Lunch" value={wo.lunchWorked===true?"Worked Through":wo.lunchWorked===false?"Took 30-min Break":null}/><InvRow label="Straight Time" value={wo.straightTime?`${wo.straightTime} hrs`:null}/>{wo.overtimeEnabled&&<InvRow label="Overtime" value={wo.overtime?`${wo.overtime} hrs`:null}/>}<InvRow label="Rate / Hour" value={wo.ratePerHour?`$${wo.ratePerHour}`:null}/><InvRow label="Rate / Load" value={wo.ratePerLoad?`$${wo.ratePerLoad}`:null}/><InvRow label="Gallons Used" value={wo.gallons?`${wo.gallons} gal`:null}/><InvRow label="Remarks" value={wo.remarks}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:20}}>{[{label:"Driver",sig:wo.driverSig,name:wo.driver},{label:"Foreman",sig:wo.foremanSig,name:"Foreman"}].map(s=><div key={s.label}><div style={{fontSize:11,color:"#888",marginBottom:4}}>{s.label} Signature</div><div style={{border:"1px solid #ccc",borderRadius:6,height:70,overflow:"hidden",background:"#fafafa"}}>{s.sig&&<img src={s.sig} alt={s.label} style={{width:"100%",height:"100%",objectFit:"contain"}}/>}</div><div style={{fontSize:11,color:"#666",borderTop:"1px solid #ccc",paddingTop:4,marginTop:4}}>{s.name}</div></div>)}</div>
           <div style={{marginTop:20,paddingTop:14,borderTop:"2px solid #1a1a1a",fontSize:10,color:"#555",textAlign:"center",lineHeight:1.6}}><strong>EXCLUSIVE USE OF VEHICLE ORDERED AND PAYMENT OF CHARGES GUARANTEED BY SHIPPER</strong><br/>TERMS: net 30 Days. Accounts over 30 days subject to a 2% service charge.</div>
         </div>
@@ -567,7 +595,6 @@ function InvoicePreview({workOrder:wo,onClose,onNewOrder}){
   );
 }
 
-// ── End of Day ─────────────────────────────────────────────────────────────────
 function EndOfDayScreen({driver,workOrders,fuelLogs,onSaveFuelLog,onBack}){
   const today=new Date().toISOString().split("T")[0];
   const todayWOs=workOrders.filter(w=>w.driver===driver&&w.date===today&&w.status==="complete");
@@ -599,7 +626,6 @@ function EndOfDayScreen({driver,workOrders,fuelLogs,onSaveFuelLog,onBack}){
   );
 }
 
-// ── Queue ─────────────────────────────────────────────────────────────────────
 function QueueScreen({workOrders,onBack,onView}){
   const [filter,setFilter]=useState("all");
   const filtered=workOrders.filter(w=>filter==="all"||w.status===filter).sort((a,b)=>b.submittedAt-a.submittedAt);
@@ -615,7 +641,6 @@ function QueueScreen({workOrders,onBack,onView}){
   );
 }
 
-// ── Reports ────────────────────────────────────────────────────────────────────
 function ReportsScreen({workOrders,fuelLogs=[],drivers=[],onBack}){
   const [view,setView]=useState("weekly"),[driverFilter,setDriverFilter]=useState("all");
   const [exportMsg,setExportMsg]=useState("");
@@ -642,19 +667,32 @@ function ReportsScreen({workOrders,fuelLogs=[],drivers=[],onBack}){
     <div style={{minHeight:"100vh",background:"#f4f4f4"}}>
       <Header title="Reports" sub={`${pl} • ${driverFilter==="all"?"All Drivers":driverFilter}`} onBack={onBack}/>
       <div style={{padding:"16px 20px 80px"}}>
-        <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}><div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>{[["daily","Day"],["weekly","Week"],["monthly","Month"],["yearly","Year"]].map(([v,l])=><button key={v} onClick={()=>setView(v)} style={{padding:"7px 18px",borderRadius:20,border:"none",background:view===v?R:"#f0f0f0",color:view===v?"#fff":"#333",fontWeight:700,fontSize:13,cursor:"pointer"}}>{l}</button>)}</div><select value={driverFilter} onChange={e=>setDriverFilter(e.target.value)} style={S.sel}><option value="all">All Drivers</option>{[...new Set([...workOrders.map(w=>w.driver),...fuelLogs.map(l=>l.driver)])].filter(Boolean).sort().map(d=><option key={d} value={d}>{d}</option>)}</select></div>
+        <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}>
+          <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>{[["daily","Day"],["weekly","Week"],["monthly","Month"],["yearly","Year"]].map(([v,l])=><button key={v} onClick={()=>setView(v)} style={{padding:"7px 18px",borderRadius:20,border:"none",background:view===v?R:"#f0f0f0",color:view===v?"#fff":"#333",fontWeight:700,fontSize:13,cursor:"pointer"}}>{l}</button>)}</div>
+          <select value={driverFilter} onChange={e=>setDriverFilter(e.target.value)} style={S.sel}><option value="all">All Drivers</option>{[...new Set([...workOrders.map(w=>w.driver),...fuelLogs.map(l=>l.driver)])].filter(Boolean).sort().map(d=><option key={d} value={d}>{d}</option>)}</select>
+        </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:14}}>{[{label:"Work Orders",val:rWOs.length,color:DR,icon:"📋"},{label:"Straight Hrs",val:totalST.toFixed(2),color:NV,icon:"⏱"},{label:"Overtime Hrs",val:totalOT.toFixed(2),color:R,icon:"⚡"},{label:"Total Gallons",val:totalGal.toFixed(1),color:"#92400E",icon:"⛽"}].map(s=><div key={s.label} style={{background:"#fff",borderRadius:12,padding:14,textAlign:"center",boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}><div style={{fontSize:18,marginBottom:4}}>{s.icon}</div><div style={{fontSize:24,fontWeight:900,color:s.color}}>{s.val}</div><div style={{fontSize:11,color:"#888",marginTop:2}}>{s.label}</div></div>)}</div>
         {Object.keys(byDriver).length>0&&<div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}><div style={{fontSize:12,fontWeight:800,color:"#888",letterSpacing:1,marginBottom:12}}>DRIVER TOTALS — {pl.toUpperCase()}</div>{Object.entries(byDriver).sort((a,b)=>b[1].st-a[1].st).map(([n,d])=><div key={n} style={{padding:"14px 0",borderBottom:"1px solid #f0f0f0"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><div style={{fontWeight:800,fontSize:15}}>{n}</div><div style={{textAlign:"right"}}><div style={{fontWeight:900,color:NV,fontSize:16}}>{(d.st+d.ot).toFixed(2)}h total</div><div style={{fontSize:11,color:"#888"}}>{d.st.toFixed(2)} ST{d.ot>0?" • "+d.ot.toFixed(2)+" OT":""}</div></div></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><span style={{background:"#EEF2FF",color:NV,fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:6}}>📋 {d.count} tickets</span>{d.gallons>0&&<span style={{background:"#FFF7ED",color:"#92400E",fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:6}}>⛽ {d.gallons.toFixed(1)} gal</span>}{d.earnings>0&&<span style={{background:"#F0FDF4",color:"#166534",fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:6}}>💵 ${d.earnings.toFixed(0)}</span>}</div></div>)}</div>}
         {rFuel.length>0&&<div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}><div style={{fontSize:12,fontWeight:800,color:"#888",letterSpacing:1,marginBottom:10}}>⛽ FUEL LOGS</div>{rFuel.sort((a,b)=>new Date(b.date)-new Date(a.date)).map((l,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:i<rFuel.length-1?"1px solid #f0f0f0":"none"}}><div><div style={{fontWeight:600}}>{l.driver}</div><div style={{fontSize:12,color:"#888"}}>{fmt(l.date)} • {l.truck}{l.notes?" • "+l.notes:""}</div></div><div style={{fontWeight:900,color:"#92400E",fontSize:16}}>{parseFloat(l.gallons).toFixed(1)} gal</div></div>)}</div>}
         {rWOs.length===0&&rFuel.length===0&&<div style={{textAlign:"center",padding:40,color:"#bbb",background:"#fff",borderRadius:14}}>No data for this period</div>}
-        <div style={{background:"#fff",borderRadius:14,padding:16,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}><div style={{fontSize:12,fontWeight:800,color:"#888",letterSpacing:1,marginBottom:12}}>EXPORT OPTIONS</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><button onClick={doCSV} style={{...S.btn,background:"#166534",color:"#fff",fontSize:13,padding:"14px 8px"}}>📊 Excel / CSV</button><button onClick={doTXT} style={{...S.btn,background:NV,color:"#fff",fontSize:13,padding:"14px 8px"}}>📄 Download TXT</button><button onClick={doEmail} style={{...S.btn,background:R,color:"#fff",fontSize:13,padding:"14px 8px"}}>✉️ Email Report</button><button onClick={doShare} style={{...S.btn,background:"#374151",color:"#fff",fontSize:13,padding:"14px 8px"}}>📤 Share / Copy</button></div>{exportMsg&&<div style={{marginTop:12,background:exportMsg.startsWith("✅")||exportMsg.startsWith("📋")?"#F0FDF4":"#FEF2F2",border:`1px solid ${exportMsg.startsWith("✅")||exportMsg.startsWith("📋")?"#86efac":"#fecaca"}`,borderRadius:8,padding:"12px 14px",fontSize:13,fontWeight:600,color:exportMsg.startsWith("✅")||exportMsg.startsWith("📋")?"#166534":"#991b1b",textAlign:"center"}}>{exportMsg}</div>}</div>
+        <div style={{background:"#fff",borderRadius:14,padding:16,boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#888",letterSpacing:1,marginBottom:12}}>EXPORT OPTIONS</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <button onClick={doCSV} style={{...S.btn,background:"#166534",color:"#fff",fontSize:13,padding:"14px 8px"}}>📊 Excel / CSV</button>
+            <button onClick={doTXT} style={{...S.btn,background:NV,color:"#fff",fontSize:13,padding:"14px 8px"}}>📄 Download TXT</button>
+            <button onClick={doEmail} style={{...S.btn,background:R,color:"#fff",fontSize:13,padding:"14px 8px"}}>✉️ Email Report</button>
+            <button onClick={doShare} style={{...S.btn,background:"#374151",color:"#fff",fontSize:13,padding:"14px 8px"}}>📤 Share / Copy</button>
+          </div>
+          {exportMsg&&<div style={{marginTop:12,background:exportMsg.startsWith("✅")||exportMsg.startsWith("📋")?"#F0FDF4":"#FEF2F2",border:`1px solid ${exportMsg.startsWith("✅")||exportMsg.startsWith("📋")?"#86efac":"#fecaca"}`,borderRadius:8,padding:"12px 14px",fontSize:13,fontWeight:600,color:exportMsg.startsWith("✅")||exportMsg.startsWith("📋")?"#166534":"#991b1b",textAlign:"center"}}>{exportMsg}</div>}
+        </div>
       </div>
       <Toast msg={exportMsg}/>
     </div>
   );
 }
 
-// ── Main App ──────────────────────────────────────────────────────────────────
+const ADMIN_PIN_DEFAULT="1234";
+
 export default function App(){
   const [screen,setScreen]=useState("login");
   const [driver,setDriver]=useState(null);
@@ -666,6 +704,8 @@ export default function App(){
   const [savedLocations,setSavedLocations]=useState([]);
   const [fuelLogs,setFuelLogs]=useState([]);
   const [viewingWO,setViewingWO]=useState(null);
+  const [driverPins,setDriverPins]=useState({});
+  const [adminPin,setAdminPin]=useState(ADMIN_PIN_DEFAULT);
 
   useEffect(()=>{
     (async()=>{
@@ -676,6 +716,8 @@ export default function App(){
         const r4=await window.storage.get("rjs-companies");if(r4)setCompanies(JSON.parse(r4.value).map(normCompany));
         const r5=await window.storage.get("rjs-locations");if(r5)setSavedLocations(JSON.parse(r5.value));
         const r6=await window.storage.get("rjs-fuel-logs");if(r6)setFuelLogs(JSON.parse(r6.value));
+        const r7=await window.storage.get("rjs-driver-pins");if(r7)setDriverPins(JSON.parse(r7.value));
+        const r8=await window.storage.get("rjs-admin-pin");if(r8)setAdminPin(r8.value);
       }catch(e){}
     })();
   },[]);
@@ -687,10 +729,13 @@ export default function App(){
   const handleAdminSave=async({drivers:d,companies:c,quarries:q})=>{setDrivers(d);setCompanies(c);setQuarries(q);try{await window.storage.set("rjs-drivers",JSON.stringify(d));await window.storage.set("rjs-companies",JSON.stringify(c));await window.storage.set("rjs-quarries",JSON.stringify(q));}catch(e){}};
   const addLocation=async loc=>{if(!loc?.trim())return;setSavedLocations(prev=>{const t=loc.trim();if(prev.includes(t))return prev;const u=[t,...prev].slice(0,50);window.storage.set("rjs-locations",JSON.stringify(u)).catch(()=>{});return u;});};
   const handleSigComplete=async(driverSig,foremanSig)=>{if(pendingForm.fromLocation)addLocation(pendingForm.fromLocation);if(pendingForm.toLocation)addLocation(pendingForm.toLocation);const wo={...pendingForm,driverSig,foremanSig,status:"complete",submittedAt:Date.now()};await saveWOs([...workOrders,wo]);setViewingWO(wo);setScreen("invoice");};
+  const handleSaveDriverPin=async(name,pin)=>{setDriverPins(prev=>{const u={...prev,[name]:pin};window.storage.set("rjs-driver-pins",JSON.stringify(u)).catch(()=>{});return u;});};
+  const handleResetDriverPin=async(name)=>{setDriverPins(prev=>{const u={...prev};delete u[name];window.storage.set("rjs-driver-pins",JSON.stringify(u)).catch(()=>{});return u;});};
+  const handleChangeAdminPin=async(pin)=>{setAdminPin(pin);try{await window.storage.set("rjs-admin-pin",pin);}catch(e){}};
 
-  if(screen==="login") return <LoginScreen drivers={drivers} onLogin={d=>{setDriver(d);setScreen("dashboard");}} onAdmin={()=>setScreen("admin")}/>;
-  if(screen==="dashboard") return <Dashboard driver={driver} workOrders={workOrders} onNewWO={()=>setScreen("new_wo")} onQueue={()=>setScreen("queue")} onReports={()=>setScreen("reports")} onAdmin={()=>setScreen("admin")} onEndOfDay={()=>setScreen("eod")} onLogout={()=>{setDriver(null);setScreen("login");}}/>;
-  if(screen==="admin") return <AdminScreen onBack={()=>setScreen(driver?"dashboard":"login")} drivers={drivers} companies={companies} quarries={quarries} workOrders={workOrders} fuelLogs={fuelLogs} onSave={handleAdminSave} onLoadSample={loadSampleData} onClearSample={clearSampleData}/>;
+  if(screen==="login") return <LoginScreen drivers={drivers} driverPins={driverPins} adminPin={adminPin} onLogin={d=>{setDriver(d);setScreen("dashboard");}} onAdmin={()=>setScreen("admin")} onSavePin={handleSaveDriverPin}/>;
+  if(screen==="dashboard") return <Dashboard driver={driver} workOrders={workOrders} onNewWO={()=>setScreen("new_wo")} onQueue={()=>setScreen("queue")} onReports={()=>setScreen("reports")} onEndOfDay={()=>setScreen("eod")} onLogout={()=>{setDriver(null);setScreen("login");}}/>;
+  if(screen==="admin") return <AdminScreen onBack={()=>setScreen(driver?"dashboard":"login")} drivers={drivers} companies={companies} quarries={quarries} workOrders={workOrders} fuelLogs={fuelLogs} onSave={handleAdminSave} onLoadSample={loadSampleData} onClearSample={clearSampleData} adminPin={adminPin} driverPins={driverPins} onChangeAdminPin={handleChangeAdminPin} onResetDriverPin={handleResetDriverPin}/>;
   if(screen==="new_wo") return <WorkOrderForm driver={driver} quarries={quarries} companies={companies} savedLocations={savedLocations} onSubmit={form=>{setPendingForm(form);setScreen("signatures");}} onCancel={()=>setScreen("dashboard")}/>;
   if(screen==="signatures") return <SignatureScreen form={pendingForm} onComplete={handleSigComplete} onBack={()=>setScreen("new_wo")}/>;
   if(screen==="invoice") return <InvoicePreview workOrder={viewingWO} onClose={()=>setScreen("queue")} onNewOrder={()=>setScreen("new_wo")}/>;
