@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 const R = "#C8102E", DR = "#8B0000", NV = "#0D2B6B";
 const TRUCKS = Array.from({ length: 10 }, (_, i) => `Truck #${i + 1}`);
 const EQUIP_TYPES = ["Dump","Semi","Tandem","End Dump","Side Dump","Belly Dump"];
-const INIT_DRIVER_NAMES = ["Steve","Jared","Josh","Brit","Mike","Dave","Tim","Zane","Bob","Glen"];
+const INIT_DRIVER_NAMES = ["Steve","Jared","Scoobie","Henery","Joe","Dave","Tim","Boogie","Bob","Glen"];
 
 const MATERIAL_TREE = {
   "Rock / Aggregate": ["AG-STONE","COML SCREENINGS","ENVIRONMENTAL LIMESTONE","COML 1\" MINUS STONE","COML 2\" MINUS STONE","COML 4\" MINUS STONE","COML 1\" CLEAN STONE","COML 1½\" CLEAN STONE","COML 2\" CLEAN STONE","IDOT CA01 (2-2/12 CLEAN)","IDOT CA02 (2\"x0\")","IDOT CA03 (2\"x1\")","IDOT CA05 (1½\"x1\")","IDOT CA06 (1\"x0\")","IDOT CA06 PUGMILL","IDOT CA07 (1¼\")","IDOT CM11/CA11 (¾\")","IDOT CM11/CA11 (¾\") SS","IDOT CM14 CONC ST (½\")","IDOT CM16/CA16 (⅜\")","IDOT CM16/01SS","IDOT FM20 (MFG SAND)","IDOT RR1 (2\")","IDOT RR2 (4\")","IDOT RR3 (50#)","IDOT RR4 (140#)","IDOT RR5 (400#)","IDOT RR6 (600#)","IDOT RR7 (1000#)","MoDOT GRADE D CONC STONE","MoDOT GRADE E CONC STONE","MINE RUN","Other Rock"],
